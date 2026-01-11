@@ -1,8 +1,15 @@
 import google.generativeai as genai
 import os
+from dotenv import load_dotenv
 
-# Configure Gemini API
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyC9LDy5FDQedN7O7ZJF9Qfb32fOvaFQTP4")
+# Load environment variables from .env file
+load_dotenv()
+
+# Configure Gemini API - Get from environment variable
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable is not set. Please set it in your .env file or environment.")
+
 genai.configure(api_key=GEMINI_API_KEY)
 
 def generate_embedding(text: str):
