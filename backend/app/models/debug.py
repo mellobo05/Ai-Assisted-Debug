@@ -9,7 +9,7 @@ from app.db.base import Base
 class DebugSession(Base):
     __tablename__ = "debug_sessions"
 
-    id = Column(UUID(as_uuid=True,primary_key=True),default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     issue_summary = Column(String,nullable=False)
     domain = Column(String,nullable=False)
     os = Column(String,nullable=False)
@@ -21,7 +21,7 @@ class DebugEmbedding(Base):
     __tablename__ = "debug_embeddings"
 
     session_id = Column(UUID(as_uuid=True),primary_key=True)
-    embedding = Column(Vector(1536),nullable=False)#openai embedding size
+    embedding = Column(Vector(768),nullable=False)#gemini embedding-001 size
 
 
 
