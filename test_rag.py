@@ -1,6 +1,9 @@
 """
 Test script to verify RAG pipeline is working
 """
+import sys
+sys.path.insert(0, 'backend')
+
 import requests
 import time
 import json
@@ -28,7 +31,7 @@ def test_rag_pipeline():
     response = requests.post(API_URL, json=test_request)
     
     if response.status_code != 200:
-        print(f"❌ Error: {response.status_code}")
+        print(f"[ERROR] Error: {response.status_code}")
         print(response.text)
         return
     
@@ -36,7 +39,7 @@ def test_rag_pipeline():
     session_id = result.get("session_id")
     status = result.get("status")
     
-    print(f"✅ Request successful!")
+    print(f"[OK] Request successful!")
     print(f"   Session ID: {session_id}")
     print(f"   Status: {status}")
     
@@ -52,7 +55,7 @@ def test_rag_pipeline():
         # Check session
         session = db.query(DebugSession).filter(DebugSession.id == session_id).first()
         if session:
-            print(f"✅ Session found in database")
+            print(f"[OK] Session found in database")
             print(f"   Issue: {session.issue_summary}")
             print(f"   Domain: {session.domain}")
             print(f"   OS: {session.os}")
@@ -61,21 +64,27 @@ def test_rag_pipeline():
             # Check embedding
             embedding = db.query(DebugEmbedding).filter(DebugEmbedding.session_id == session_id).first()
             if embedding:
-                print(f"✅ Embedding generated successfully!")
-                print(f"   Embedding vector size: {len(embedding.embedding) if embedding.embedding else 0}")
+                print(f"[OK] Embedding generated successfully!")
+                # Handle both JSON (list) and Vector types
+                emb_data = embedding.embedding
+                if isinstance(emb_data, list):
+                    emb_size = len(emb_data)
+                else:
+                    emb_size = len(emb_data) if emb_data else 0
+                print(f"   Embedding vector size: {emb_size}")
                 print(f"   Expected size: 768 (Gemini embedding-001)")
                 
-                if len(embedding.embedding) == 768:
-                    print("\n🎉 RAG Pipeline is working correctly!")
+                if emb_size == 768:
+                    print("\n[SUCCESS] RAG Pipeline is working correctly!")
                 else:
-                    print(f"\n⚠️  Warning: Embedding size is {len(embedding.embedding)}, expected 768")
+                    print(f"\n[WARNING] Embedding size is {emb_size}, expected 768")
             else:
-                print("❌ Embedding not found in database")
+                print("[ERROR] Embedding not found in database")
                 print("   The RAG pipeline may still be processing or encountered an error")
         else:
-            print(f"❌ Session not found in database")
+            print(f"[ERROR] Session not found in database")
     except Exception as e:
-        print(f"❌ Error checking database: {e}")
+        print(f"[ERROR] Error checking database: {e}")
     finally:
         db.close()
     
@@ -85,7 +94,8 @@ if __name__ == "__main__":
     try:
         test_rag_pipeline()
     except requests.exceptions.ConnectionError:
-        print("❌ Error: Could not connect to the API.")
-        print("   Make sure the server is running: python -m uvicorn backend.app.main:app --reload")
+        print("[ERROR] Could not connect to the API.")
+        print("   Make sure the server is running:")
+        print("   python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[ERROR] Error: {e}")

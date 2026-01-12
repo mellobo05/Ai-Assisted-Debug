@@ -16,28 +16,36 @@ class DebugRequest(BaseModel):
 
 @app.post("/debug")
 async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
-    session_id = str(uuid4())
-    #1. Save to DB 
-    db = SessionLocal()
+    try:
+        #1. Save to DB 
+        db = SessionLocal()
 
-    session = DebugSession(
-            issue_summary=request.issue_summary,
-            domain=request.domain, 
-            os=request.os, 
-            logs=request.logs
-            )
-    db.add(session)
-    db.commit()
-    db.refresh(session)
-     
-    background_tasks.add_task(process_rag_pipeline, session.id)
+        session = DebugSession(
+                issue_summary=request.issue_summary,
+                domain=request.domain, 
+                os=request.os, 
+                logs=request.logs
+                )
+        db.add(session)
+        db.commit()
+        db.refresh(session)
+         
+        background_tasks.add_task(process_rag_pipeline, session.id)
 
-    print(f"Saved session {session.id} with status PROCESSING")
-    
-    return {
-        "session_id": str(session.id),
-        "status": "PROCESSING"
-    }
+        print(f"Saved session {session.id} with status PROCESSING")
+        
+        return {
+            "session_id": str(session.id),
+            "status": "PROCESSING"
+        }
+    except Exception as e:
+        print(f"Error in start_debug: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+    finally:
+        if 'db' in locals():
+            db.close()
 
 
     
