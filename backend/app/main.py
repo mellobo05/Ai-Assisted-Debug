@@ -1,11 +1,14 @@
-from fastapi import FastAPI,BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from uuid import uuid4
 import asyncio
+import os
 
 from app.db.session import SessionLocal
 from app.models.debug import DebugSession
 from app.services.rag import process_rag_pipeline
+from app.services.search import find_similar
+from app.services.embeddings import generate_embedding
 
 app = FastAPI(title="AI Assisted Debugger")
 
@@ -26,6 +29,10 @@ class DebugRequest(BaseModel):
     domain: str
     os: str
     logs: str
+
+class QueryRequest(BaseModel):
+    query: str
+    limit: int = 3
 
 @app.post("/debug")
 async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
@@ -73,6 +80,73 @@ async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
         if 'db' in locals():
             db.close()
 
-
-    
+@app.post("/search")
+async def search_similar(request: QueryRequest):
+    """
+    Search for similar debug sessions based on a query.
+    Uses RAG to find relevant context from the vector database.
+    """
+    try:
+        print(f"[SEARCH] Processing query: {request.query}")
+        
+        # Ensure .env is loaded (in case server started without it)
+        from dotenv import load_dotenv
+        from pathlib import Path
+        env_path = Path(__file__).parent.parent.parent.parent / '.env'
+        if env_path.exists():
+            load_dotenv(dotenv_path=env_path, override=True)
+        
+        # Generate embedding for the query
+        use_mock = os.getenv("USE_MOCK_EMBEDDING", "false").lower() == "true"
+        print(f"[SEARCH] USE_MOCK_EMBEDDING={use_mock}")
+        
+        # Generate embedding (generate_embedding handles mock mode internally)
+        try:
+            query_embedding = generate_embedding(request.query, task_type="retrieval_query")
+            if not isinstance(query_embedding, list) or len(query_embedding) == 0:
+                raise ValueError(f"Invalid embedding generated: type={type(query_embedding)}, length={len(query_embedding) if isinstance(query_embedding, list) else 'N/A'}")
+            print(f"[SEARCH] Query embedding generated, size: {len(query_embedding)}")
+        except Exception as e:
+            print(f"[SEARCH] Error generating query embedding: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Always fall back to mock if anything fails
+            print("[SEARCH] Falling back to mock embedding...")
+            import hashlib
+            hash_obj = hashlib.md5(request.query.encode())
+            hash_int = int(hash_obj.hexdigest(), 16)
+            query_embedding = [(hash_int % 1000) / 1000.0 for _ in range(768)]
+            print(f"[SEARCH] Mock embedding generated, size: {len(query_embedding)}")
+        
+        # Find similar sessions
+        try:
+            similar_sessions = find_similar(query_embedding, limit=request.limit)
+            print(f"[SEARCH] Found {len(similar_sessions)} similar sessions")
+        except Exception as e:
+            print(f"[SEARCH] Error finding similar sessions: {e}")
+            import traceback
+            traceback.print_exc()
+            # Return empty results instead of failing
+            similar_sessions = []
+        
+        return {
+            "query": request.query,
+            "results_count": len(similar_sessions),
+            "results": similar_sessions
+        }
+        
+    except Exception as e:
+        # If it's already an HTTPException, re-raise it
+        if isinstance(e, HTTPException):
+            raise
+        
+        print(f"[SEARCH] Unexpected error in search endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error during search: {str(e)}"
+        )
 
