@@ -1,4 +1,5 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from uuid import uuid4
 import asyncio
@@ -11,6 +12,18 @@ from app.services.search import find_similar
 from app.services.embeddings import generate_embedding
 
 app = FastAPI(title="AI Assisted Debugger")
+
+# Allow the React dev server to call the API from the browser
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/test-background")
 async def test_background(background_tasks: BackgroundTasks):
