@@ -1,7 +1,8 @@
 from app.db.session import SessionLocal
 from app.models.debug import DebugEmbedding, DebugSession
+from app.models.jira import JiraEmbedding, JiraIssue
 import numpy as np
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 
 def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
@@ -99,6 +100,76 @@ def find_similar(query_embedding: List[float], limit: int = 3) -> List[Dict]:
     except Exception as e:
         print(f"[SEARCH] Error finding similar embeddings: {e}")
         import traceback
+        traceback.print_exc()
+        return []
+    finally:
+        db.close()
+
+
+def find_similar_jira(query_embedding: List[float], limit: int = 3) -> List[Dict]:
+    """
+    Find similar JIRA issues based on query embedding using cosine similarity.
+    JSON embeddings, so similarity is computed in Python.
+    """
+    db = SessionLocal()
+    try:
+        all_embeddings = db.query(JiraEmbedding).all()
+        if not all_embeddings:
+            return []
+
+        if not isinstance(query_embedding, list) or len(query_embedding) == 0:
+            print(
+                f"[SEARCH] Invalid query embedding for JIRA: type={type(query_embedding)}, "
+                f"length={len(query_embedding) if isinstance(query_embedding, list) else 'N/A'}"
+            )
+            return []
+
+        query_dim = len(query_embedding)
+        results: List[Dict] = []
+
+        for db_embedding in all_embeddings:
+            stored_embedding = db_embedding.embedding
+            if not isinstance(stored_embedding, list):
+                continue
+            if len(stored_embedding) != query_dim:
+                continue
+
+            similarity = cosine_similarity(query_embedding, stored_embedding)
+
+            issue = (
+                db.query(JiraIssue)
+                .filter(JiraIssue.issue_key == db_embedding.issue_key)
+                .first()
+            )
+            if not issue:
+                continue
+
+            results.append(
+                {
+                    "source": "jira",
+                    "issue_key": issue.issue_key,
+                    "similarity": similarity,
+                    "summary": issue.summary,
+                    "status": issue.status,
+                    "priority": issue.priority,
+                    "assignee": issue.assignee,
+                    "issue_type": issue.issue_type,
+                    "url": issue.url,
+                    "program_theme": getattr(issue, "program_theme", None),
+                    "labels": getattr(issue, "labels", None),
+                    "components": getattr(issue, "components", None),
+                    "latest_comment": (
+                        (issue.comments[0].get("body") if isinstance(issue.comments, list) and issue.comments else None)
+                    ),
+                }
+            )
+
+        results.sort(key=lambda x: x["similarity"], reverse=True)
+        return results[:limit]
+    except Exception as e:
+        print(f"[SEARCH] Error finding similar JIRA embeddings: {e}")
+        import traceback
+
         traceback.print_exc()
         return []
     finally:

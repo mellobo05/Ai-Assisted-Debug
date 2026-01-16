@@ -8,8 +8,10 @@ import os
 from app.db.session import SessionLocal
 from app.models.debug import DebugSession
 from app.services.rag import process_rag_pipeline
-from app.services.search import find_similar
+from app.services.search import find_similar, find_similar_jira
 from app.services.embeddings import generate_embedding
+from app.services.jira_service import JiraService, build_embedding_text, extract_issue_fields
+from app.models.jira import JiraIssue, JiraEmbedding
 
 app = FastAPI(title="AI Assisted Debugger")
 
@@ -46,6 +48,13 @@ class DebugRequest(BaseModel):
 class QueryRequest(BaseModel):
     query: str
     limit: int = 3
+
+
+class JiraSyncRequest(BaseModel):
+    issue_keys: list[str] | None = None
+    jql: str | None = None
+    max_results: int = 25
+    max_comments: int = 25
 
 @app.post("/debug")
 async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
@@ -101,65 +110,142 @@ async def search_similar(request: QueryRequest):
     """
     try:
         print(f"[SEARCH] Processing query: {request.query}")
-        
+
         # Ensure .env is loaded (in case server started without it)
         from dotenv import load_dotenv
         from pathlib import Path
-        env_path = Path(__file__).parent.parent.parent.parent / '.env'
+
+        env_path = Path(__file__).parent.parent.parent.parent / ".env"
         if env_path.exists():
             load_dotenv(dotenv_path=env_path, override=True)
-        
-        # Generate embedding for the query
+
+        # Generate embedding (generate_embedding handles mock mode internally)
         use_mock = os.getenv("USE_MOCK_EMBEDDING", "false").lower() == "true"
         print(f"[SEARCH] USE_MOCK_EMBEDDING={use_mock}")
-        
-        # Generate embedding (generate_embedding handles mock mode internally)
+
         try:
             query_embedding = generate_embedding(request.query, task_type="retrieval_query")
             if not isinstance(query_embedding, list) or len(query_embedding) == 0:
-                raise ValueError(f"Invalid embedding generated: type={type(query_embedding)}, length={len(query_embedding) if isinstance(query_embedding, list) else 'N/A'}")
+                raise ValueError(
+                    f"Invalid embedding generated: type={type(query_embedding)}, "
+                    f"length={len(query_embedding) if isinstance(query_embedding, list) else 'N/A'}"
+                )
             print(f"[SEARCH] Query embedding generated, size: {len(query_embedding)}")
         except Exception as e:
             print(f"[SEARCH] Error generating query embedding: {e}")
             import traceback
+
             traceback.print_exc()
-            
-            # Always fall back to mock if anything fails
             print("[SEARCH] Falling back to mock embedding...")
             import hashlib
-            hash_obj = hashlib.md5(request.query.encode())
-            hash_int = int(hash_obj.hexdigest(), 16)
+
+            hash_int = int(hashlib.md5(request.query.encode()).hexdigest(), 16)
             query_embedding = [(hash_int % 1000) / 1000.0 for _ in range(768)]
             print(f"[SEARCH] Mock embedding generated, size: {len(query_embedding)}")
-        
-        # Find similar sessions
-        try:
-            similar_sessions = find_similar(query_embedding, limit=request.limit)
-            print(f"[SEARCH] Found {len(similar_sessions)} similar sessions")
-        except Exception as e:
-            print(f"[SEARCH] Error finding similar sessions: {e}")
-            import traceback
-            traceback.print_exc()
-            # Return empty results instead of failing
-            similar_sessions = []
-        
-        return {
-            "query": request.query,
-            "results_count": len(similar_sessions),
-            "results": similar_sessions
-        }
-        
+
+        # JIRA is the retrieval source (debug_sessions removed/ignored)
+        similar_jira = find_similar_jira(query_embedding, limit=request.limit)
+        return {"query": request.query, "results_count": len(similar_jira), "results": similar_jira}
+
+    except HTTPException:
+        raise
     except Exception as e:
-        # If it's already an HTTPException, re-raise it
-        if isinstance(e, HTTPException):
-            raise
-        
         print(f"[SEARCH] Unexpected error in search endpoint: {e}")
         import traceback
+
         traceback.print_exc()
-        
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error during search: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Internal server error during search: {e}")
+
+
+@app.post("/jira/sync")
+async def jira_sync(request: JiraSyncRequest):
+    """
+    Ingest JIRA issues into Postgres + embeddings for semantic search.
+
+    Provide either:
+    - issue_keys: ["PROJ-123", "PROJ-456"]
+    - jql: "project = PROJ ORDER BY updated DESC"
+    """
+    if not request.issue_keys and not request.jql:
+        raise HTTPException(status_code=400, detail="Provide either issue_keys or jql")
+
+    # Ensure .env is loaded for JIRA env vars in dev
+    from dotenv import load_dotenv
+    from pathlib import Path
+
+    env_path = Path(__file__).parent.parent.parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path, override=True)
+
+    try:
+        jira = JiraService.from_env()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"JIRA config error: {e}")
+
+    # Fetch (include latest comments to support "fix/context" retrieval)
+    raw_issues: list[dict] = []
+    try:
+        if request.issue_keys:
+            for key in request.issue_keys:
+                raw_issues.append(jira.fetch_issue_with_comments(key, max_comments=request.max_comments))
+        else:
+            raw_issues = jira.search_with_comments(
+                request.jql or "",
+                max_results=request.max_results,
+                max_comments=request.max_comments,
+            )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch from JIRA: {e}")
+
+    # Store + embed
+    db = SessionLocal()
+    ingested = 0
+    embedded = 0
+    try:
+        for raw in raw_issues:
+            extracted = extract_issue_fields(raw)
+            issue_key = extracted.get("issue_key")
+            if not issue_key:
+                continue
+
+            issue = JiraIssue(
+                issue_key=issue_key,
+                jira_id=extracted.get("jira_id"),
+                summary=extracted.get("summary") or "",
+                description=extracted.get("description"),
+                status=extracted.get("status"),
+                priority=extracted.get("priority"),
+                assignee=extracted.get("assignee"),
+                issue_type=extracted.get("issue_type"),
+                program_theme=extracted.get("program_theme"),
+                labels=extracted.get("labels"),
+                components=extracted.get("components"),
+                comments=extracted.get("comments"),
+                url=jira.issue_url(issue_key),
+                raw=raw,
+            )
+            db.merge(issue)
+            ingested += 1
+
+            # Embed
+            text = build_embedding_text(raw)
+            emb = generate_embedding(text, task_type="retrieval_document")
+            if not isinstance(emb, list) or len(emb) == 0:
+                continue
+
+            db.merge(JiraEmbedding(issue_key=issue_key, embedding=emb))
+            embedded += 1
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to store/embed issues: {e}")
+    finally:
+        db.close()
+
+    return {
+        "fetched": len(raw_issues),
+        "ingested": ingested,
+        "embedded": embedded,
+    }
 

@@ -23,6 +23,7 @@ aiofiles==23.2.1
 python-dotenv==1.0.1
 loguru==0.7.2
 numpy==1.26.3
+jira==3.5.2
 
 # Testing
 pytest==8.1.1
