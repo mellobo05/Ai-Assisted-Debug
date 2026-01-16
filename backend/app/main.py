@@ -10,7 +10,7 @@ from app.models.debug import DebugSession
 from app.services.rag import process_rag_pipeline
 from app.services.search import find_similar, find_similar_jira
 from app.services.embeddings import generate_embedding
-from app.services.jira_service import JiraService, build_embedding_text, extract_issue_fields
+from app.integrations.jira.client import JiraService, build_embedding_text, extract_issue_fields
 from app.models.jira import JiraIssue, JiraEmbedding
 
 app = FastAPI(title="AI Assisted Debugger")

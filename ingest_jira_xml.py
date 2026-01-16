@@ -53,7 +53,7 @@ def main() -> int:
     from app.db.session import SessionLocal
     from app.models.jira import JiraEmbedding, JiraIssue
     from app.services.embeddings import generate_embedding
-    from app.services.jira_xml import build_embedding_text_from_parsed, parse_jira_xml
+    from app.integrations.jira.xml_parser import build_embedding_text_from_parsed, parse_jira_xml
 
     xml_content = xml_path.read_text(encoding="utf-8", errors="ignore")
     issues = parse_jira_xml(xml_content)
