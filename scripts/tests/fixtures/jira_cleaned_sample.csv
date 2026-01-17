@@ -1,0 +1,4 @@
+Issue key,Summary,Component,Description,Comments
+SYSCROS-TEST-1,External display flicker on HDMI,Video; Graphics,Screen flickers when hot-plugging HDMI at 4K@60,"[\"Initial repro on WW46 build\",\"Workaround: disable adaptive sync\",\"Fix: update kernel driver and restart SurfaceFlinger\"]"
+SYSCROS-TEST-2,CTS media codec test failure,Video,CTS MediaCodec test fails with low PSNR,"[\"Failure seen on arm64-v8a\",\"Root cause: wrong encoder params\",\"Fix: adjust bitrate control\"]"
+
