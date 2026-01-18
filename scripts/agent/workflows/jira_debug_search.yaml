@@ -1,0 +1,19 @@
+workflow:
+  name: "JIRA Debug: Similar Issues Search"
+  description: "Embed a query and retrieve similar JIRA issues from the local Postgres cache."
+
+  steps:
+    - step: "Search similar JIRA issues"
+      action: "rag.search_similar_jira"
+      parameters:
+        query: "${inputs.query}"
+        limit: "${inputs.limit}"
+      options:
+        save_as: "search"
+
+    - step: "Render report"
+      action: "report.render_similar_jira"
+      options:
+        input: "steps.search"
+        save_as: "report"
+

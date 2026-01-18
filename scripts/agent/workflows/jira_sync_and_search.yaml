@@ -1,0 +1,30 @@
+workflow:
+  name: "JIRA Debug: Sync + Similar Issues Search"
+  description: "Fetch issues from JIRA (by key or JQL), upsert into Postgres, generate embeddings, then search similar issues."
+
+  steps:
+    - step: "Sync JIRA issues"
+      action: "jira.sync"
+      parameters:
+        issue_keys: "${inputs.issue_keys}"
+        jql: "${inputs.jql}"
+        max_results: "${inputs.max_results}"
+        max_comments: "${inputs.max_comments}"
+      options:
+        save_as: "sync"
+        skip_in_output: true
+
+    - step: "Search similar JIRA issues"
+      action: "rag.search_similar_jira"
+      parameters:
+        query: "${inputs.query}"
+        limit: "${inputs.limit}"
+      options:
+        save_as: "search"
+
+    - step: "Render report"
+      action: "report.render_similar_jira"
+      options:
+        input: "steps.search"
+        save_as: "report"
+
