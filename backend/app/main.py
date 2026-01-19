@@ -91,7 +91,11 @@ async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
         
         return {
             "session_id": str(session.id),
-            "status": "PROCESSING"
+            "status": "PROCESSING",
+            # Echo back what was saved so the UI can display/verify it
+            "os": session.os,
+            "domain": session.domain,
+            "issue_summary": session.issue_summary,
         }
     except Exception as e:
         print(f"Error in start_debug: {e}")
@@ -117,7 +121,8 @@ async def search_similar(request: QueryRequest):
 
         env_path = Path(__file__).parent.parent.parent.parent / ".env"
         if env_path.exists():
-            load_dotenv(dotenv_path=env_path, override=True)
+            # Do not override shell env vars (PowerShell should win)
+            load_dotenv(dotenv_path=env_path, override=False)
 
         # Generate embedding (generate_embedding handles mock mode internally)
         use_mock = os.getenv("USE_MOCK_EMBEDDING", "false").lower() == "true"
@@ -140,7 +145,13 @@ async def search_similar(request: QueryRequest):
             import hashlib
 
             hash_int = int(hashlib.md5(request.query.encode()).hexdigest(), 16)
-            query_embedding = [(hash_int % 1000) / 1000.0 for _ in range(768)]
+            provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
+            # Match the most likely dimension for the chosen provider so DB comparisons work.
+            if provider == "sbert":
+                dim = int(os.getenv("MOCK_EMBED_DIM", "384"))
+            else:
+                dim = int(os.getenv("MOCK_EMBED_DIM", "768"))
+            query_embedding = [(hash_int % 1000) / 1000.0 for _ in range(dim)]
             print(f"[SEARCH] Mock embedding generated, size: {len(query_embedding)}")
 
         # JIRA is the retrieval source (debug_sessions removed/ignored)
@@ -175,7 +186,8 @@ async def jira_sync(request: JiraSyncRequest):
 
     env_path = Path(__file__).parent.parent.parent.parent / ".env"
     if env_path.exists():
-        load_dotenv(dotenv_path=env_path, override=True)
+        # Do not override shell env vars (PowerShell should win)
+        load_dotenv(dotenv_path=env_path, override=False)
 
     try:
         jira = JiraService.from_env()

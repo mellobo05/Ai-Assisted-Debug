@@ -1,7 +1,14 @@
+param(
+    # Use this for a stable demo/UI run to avoid mid-request reloads.
+    [switch]$NoReload
+)
+
 # Run FastAPI server script
 # This script sets up the environment and runs the server
 # Run this script from the project root (e.g., C:\Users\lobomela\.cursor\AI-Assistend-Debug)
-# Example: .\run_server.ps1
+# Examples:
+#   .\run_server.ps1
+#   .\run_server.ps1 -NoReload
 
 Write-Host "Starting FastAPI server..." -ForegroundColor Green
 
@@ -9,7 +16,7 @@ Write-Host "Starting FastAPI server..." -ForegroundColor Green
 $env:PYTHONPATH = "$PSScriptRoot\backend"
 Write-Host "PYTHONPATH set to: $env:PYTHONPATH" -ForegroundColor Cyan
 
-# Load GEMINI_API_KEY from .env file if it exists
+# Load environment variables from .env file if it exists
 $envFile = Join-Path $PSScriptRoot ".env"
 if (Test-Path $envFile) {
     Write-Host "Loading environment variables from .env file..." -ForegroundColor Cyan
@@ -17,23 +24,37 @@ if (Test-Path $envFile) {
         if ($_ -match "^([^#=]+)=(.+)$") {
             $key = $matches[1].Trim()
             $value = $matches[2].Trim()
-            Set-Item -Path Env:$key -Value $value
-            Write-Host "  Set $key" -ForegroundColor Gray
+            # Do not override already-set environment variables (shell should win)
+            if (-not (Test-Path Env:$key)) {
+                Set-Item -Path Env:$key -Value $value
+                Write-Host "  Set $key" -ForegroundColor Gray
+            } else {
+                Write-Host "  Skipped $key (already set in shell)" -ForegroundColor DarkGray
+            }
         }
     }
 } else {
-    Write-Host "WARNING: .env file not found. Ensure GEMINI_API_KEY is set in your environment." -ForegroundColor Yellow
+    Write-Host "WARNING: .env file not found. Ensure required env vars are set in your environment." -ForegroundColor Yellow
 }
 
-# Check if GEMINI_API_KEY is set
-if (-not $env:GEMINI_API_KEY) {
-    Write-Host "ERROR: GEMINI_API_KEY is not set. Please set it in your .env file or environment." -ForegroundColor Red
+# Provider-aware checks
+$provider = ($env:EMBEDDING_PROVIDER | ForEach-Object { $_.ToLower() }) 
+if (-not $provider) { $provider = "gemini" }
+$useMock = (($env:USE_MOCK_EMBEDDING | ForEach-Object { $_.ToLower() }) -eq "true")
+
+Write-Host "Embedding provider: $provider (USE_MOCK_EMBEDDING=$useMock)" -ForegroundColor Cyan
+
+# Only require GEMINI_API_KEY when actually needed
+if (($provider -eq "gemini") -and (-not $useMock) -and (-not $env:GEMINI_API_KEY)) {
+    Write-Host "ERROR: GEMINI_API_KEY is not set. Set it, or set EMBEDDING_PROVIDER=sbert, or set USE_MOCK_EMBEDDING=true." -ForegroundColor Red
     exit 1
-} else {
-    Write-Host "GEMINI_API_KEY is set." -ForegroundColor Green
 }
 
 # Run Uvicorn
-# The --reload flag is important for development
+# The --reload flag is useful for development but can interrupt UI requests mid-flight.
 Write-Host "`nStarting uvicorn server..." -ForegroundColor Green
-python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+if ($NoReload) {
+    python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+} else {
+    python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+}

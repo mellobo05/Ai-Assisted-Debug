@@ -1,26 +1,60 @@
 import React, { useMemo, useState } from "react";
-import { getApiBase, startDebug, type DebugRequest, type DebugResponse } from "./api";
+import {
+  getApiBase,
+  searchJira,
+  startDebug,
+  type DebugRequest,
+  type DebugResponse,
+  type JiraSearchResult
+} from "./api";
 
 type FormState = DebugRequest;
 
 const OS_OPTIONS = [
   { value: "windows", label: "Windows" },
   { value: "linux", label: "Linux" },
+  { value: "chromeos", label: "ChromeOS" },
   { value: "macos", label: "macOS" },
   { value: "android", label: "Android" },
   { value: "ios", label: "iOS" }
 ];
 
+function detectOs(): string {
+  try {
+    const ua = (navigator.userAgent || "").toLowerCase();
+    const platform = (navigator.platform || "").toLowerCase();
+
+    // ChromeOS often contains "CrOS"
+    if (ua.includes("cros")) return "chromeos";
+
+    if (ua.includes("android")) return "android";
+    if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) return "ios";
+
+    if (platform.includes("win") || ua.includes("windows")) return "windows";
+    if (platform.includes("mac") || ua.includes("mac os")) return "macos";
+    if (platform.includes("linux") || ua.includes("linux")) return "linux";
+  } catch {
+    // ignore
+  }
+  return "windows";
+}
+
 export function App() {
-  const [form, setForm] = useState<FormState>({
+  const [form, setForm] = useState<FormState>(() => ({
     issue_summary: "",
     domain: "",
-    os: "windows",
+    os: detectOs(),
     logs: ""
-  });
+  }));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<DebugResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLimit, setSearchLimit] = useState(5);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<JiraSearchResult[]>([]);
 
   const apiBase = useMemo(() => getApiBase(), []);
 
@@ -30,6 +64,8 @@ export function App() {
     form.os.trim().length > 0 &&
     form.logs.trim().length > 0 &&
     !isSubmitting;
+
+  const canSearch = searchQuery.trim().length > 0 && !isSearching;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +84,24 @@ export function App() {
       setError(err?.message ?? String(err));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function onSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchError(null);
+    setSearchResults([]);
+    setIsSearching(true);
+    try {
+      const resp = await searchJira({
+        query: searchQuery.trim(),
+        limit: searchLimit
+      });
+      setSearchResults(resp.results || []);
+    } catch (err: any) {
+      setSearchError(err?.message ?? String(err));
+    } finally {
+      setIsSearching(false);
     }
   }
 
@@ -169,6 +223,18 @@ export function App() {
           {result && (
             <div className="resultBox">
               <div className="kv">
+                <div className="k">os</div>
+                <div className="v">
+                  <code>{result.os ?? form.os}</code>
+                </div>
+              </div>
+              <div className="kv">
+                <div className="k">domain</div>
+                <div className="v">
+                  <code>{result.domain ?? form.domain}</code>
+                </div>
+              </div>
+              <div className="kv">
                 <div className="k">session_id</div>
                 <div className="v">
                   <code>{result.session_id}</code>
@@ -184,6 +250,88 @@ export function App() {
                 The backend runs embedding generation asynchronously. You can check DB tables
                 (<code>debug_sessions</code>, <code>debug_embeddings</code>) to see progress.
               </div>
+            </div>
+          )}
+        </section>
+
+        <section className="card">
+          <div className="cardTitle">JIRA Similarity Search</div>
+
+          <form onSubmit={onSearch} className="form">
+            <div className="field">
+              <label className="label" htmlFor="searchQuery">
+                Query
+              </label>
+              <input
+                id="searchQuery"
+                className="input"
+                placeholder="e.g. video flicker after resume, i915, DRM overlay…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="row">
+              <div className="field">
+                <label className="label" htmlFor="searchLimit">
+                  Top K
+                </label>
+                <input
+                  id="searchLimit"
+                  className="input"
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={searchLimit}
+                  onChange={(e) => setSearchLimit(Number(e.target.value || 5))}
+                />
+              </div>
+              <div className="field">
+                <label className="label">&nbsp;</label>
+                <button className="button" disabled={!canSearch} type="submit">
+                  {isSearching ? "Searching…" : "Search JIRA"}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {searchError && (
+            <div className="errorBox">
+              <div className="errorTitle">Search failed</div>
+              <pre className="pre">{searchError}</pre>
+            </div>
+          )}
+
+          {!searchError && searchResults.length === 0 && (
+            <div className="muted">
+              Enter a query and click <b>Search JIRA</b>. Results come from your local Postgres
+              tables (<code>jira_issues</code>, <code>jira_embeddings</code>).
+            </div>
+          )}
+
+          {searchResults.length > 0 && (
+            <div className="resultBox">
+              {searchResults.map((r) => (
+                <div className="kv" key={r.issue_key}>
+                  <div className="k">{r.issue_key}</div>
+                  <div className="v">
+                    <div>
+                      <b>{(r.similarity ?? 0).toFixed(3)}</b>{" "}
+                      {r.url ? (
+                        <a href={r.url} target="_blank" rel="noreferrer">
+                          open
+                        </a>
+                      ) : null}
+                    </div>
+                    <div className="muted">{r.summary}</div>
+                    {r.latest_comment ? (
+                      <div className="hint">
+                        <b>Latest comment:</b> {r.latest_comment}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </section>
