@@ -9,6 +9,86 @@ from app.services.embeddings import generate_embedding
 from app.services.search import find_similar_jira
 
 
+def get_issue_from_db(
+    *,
+    ctx: Dict[str, Any],
+    issue_key: Optional[str] = None,
+    issue_keys: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Offline-friendly: fetch a JIRA issue from local Postgres (jira_issues table).
+
+    Returns a compact dict with fields needed for reporting + an embedding-ready text
+    (built from stored issue fields).
+    """
+    key = (issue_key or "").strip()
+    if not key and issue_keys and isinstance(issue_keys, list) and len(issue_keys) > 0:
+        key = str(issue_keys[0]).strip()
+    if not key:
+        raise ValueError("Provide issue_key (or issue_keys[0])")
+
+    db = SessionLocal()
+    try:
+        issue = db.query(JiraIssue).filter(JiraIssue.issue_key == key).first()
+        if not issue:
+            raise ValueError(f"Issue not found in DB: {key}. Ingest/sync it first.")
+
+        # Build a single text blob similar to live ingestion, but from stored fields.
+        parts: List[str] = []
+        parts.append(f"Issue: {issue.issue_key}")
+        if issue.summary:
+            parts.append(f"Summary: {issue.summary}")
+        if issue.description:
+            parts.append(f"Description: {issue.description}")
+        if issue.status:
+            parts.append(f"Status: {issue.status}")
+        if issue.priority:
+            parts.append(f"Priority: {issue.priority}")
+        if issue.assignee:
+            parts.append(f"Assignee: {issue.assignee}")
+        if issue.issue_type:
+            parts.append(f"Type: {issue.issue_type}")
+        if issue.program_theme:
+            parts.append(f"Program/Theme: {issue.program_theme}")
+        if issue.labels:
+            parts.append(f"Labels: {', '.join(issue.labels)}")
+        if issue.components:
+            parts.append(f"Components: {', '.join(issue.components)}")
+        if issue.comments and isinstance(issue.comments, list):
+            bodies = []
+            for c in issue.comments:
+                if isinstance(c, dict) and c.get("body"):
+                    bodies.append(str(c.get("body")))
+            if bodies:
+                parts.append("Comments:\n" + "\n---\n".join(bodies))
+
+        embedding_text = "\n".join(parts).strip()
+
+        latest_comment = None
+        if issue.comments and isinstance(issue.comments, list) and len(issue.comments) > 0:
+            last = issue.comments[-1]
+            if isinstance(last, dict):
+                latest_comment = last.get("body")
+
+        return {
+            "issue_key": issue.issue_key,
+            "url": issue.url,
+            "summary": issue.summary,
+            "description": issue.description,
+            "status": issue.status,
+            "priority": issue.priority,
+            "assignee": issue.assignee,
+            "issue_type": issue.issue_type,
+            "program_theme": issue.program_theme,
+            "labels": issue.labels,
+            "components": issue.components,
+            "latest_comment": latest_comment,
+            "embedding_text": embedding_text,
+        }
+    finally:
+        db.close()
+
+
 def sync(
     *,
     ctx: Dict[str, Any],
@@ -140,4 +220,138 @@ def render_similar_jira_report(
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+def render_syscros_issue_summary_report(
+    *,
+    ctx: Dict[str, Any],
+    issue: Dict[str, Any],
+    similar: Optional[Dict[str, Any]] = None,
+    max_items: int = 5,
+) -> str:
+    """
+    Render a single human-readable report:
+      - SYSCROS issue summary (from DB)
+      - Similar issues (from rag.search_similar_jira output)
+    """
+    if not isinstance(issue, dict):
+        raise ValueError("issue must be a dict (output from jira.get_issue_from_db)")
+
+    lines: List[str] = []
+    lines.append(f"SYSCROS Issue: {issue.get('issue_key')}")
+    if issue.get("url"):
+        lines.append(f"URL: {issue.get('url')}")
+    if issue.get("summary"):
+        lines.append(f"Summary: {issue.get('summary')}")
+    if issue.get("status") or issue.get("priority"):
+        lines.append(f"Status/Priority: {issue.get('status')} / {issue.get('priority')}")
+    if issue.get("assignee"):
+        lines.append(f"Assignee: {issue.get('assignee')}")
+    if issue.get("components"):
+        lines.append(f"Components: {', '.join(issue.get('components') or [])}")
+    if issue.get("program_theme"):
+        lines.append(f"Program/Theme: {issue.get('program_theme')}")
+    if issue.get("labels"):
+        lines.append(f"Labels: {', '.join(issue.get('labels') or [])}")
+    lines.append("")
+
+    if issue.get("description"):
+        desc = str(issue.get("description")).strip()
+        if len(desc) > 1200:
+            desc = desc[:1197] + "..."
+        lines.append("Description:")
+        lines.append(desc)
+        lines.append("")
+
+    if issue.get("latest_comment"):
+        lc = str(issue.get("latest_comment")).strip().replace("\n", " ")
+        if len(lc) > 400:
+            lc = lc[:397] + "..."
+        lines.append(f"Latest comment: {lc}")
+        lines.append("")
+
+    if similar and isinstance(similar, dict):
+        results = similar.get("results") or []
+        if isinstance(results, list) and results:
+            lines.append("Similar issues:")
+            for i, r in enumerate(results[:max_items], start=1):
+                issue_key = r.get("issue_key")
+                sim = r.get("similarity", 0.0)
+                summary = r.get("summary") or ""
+                status = r.get("status") or ""
+                priority = r.get("priority") or ""
+                lines.append(f"{i}. {issue_key}  sim={sim:.4f}  [{status} | {priority}]  {summary}")
+            lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def reembed_from_db(
+    *,
+    ctx: Dict[str, Any],
+    issue_keys: Optional[List[str]] = None,
+    max_items: int = 500,
+) -> Dict[str, Any]:
+    """
+    Re-generate embeddings for issues already present in jira_issues.
+
+    This is especially useful after changing embedding providers (e.g., improving mock embeddings),
+    so similarity search uses updated vectors without re-ingesting source data.
+    """
+    db = SessionLocal()
+    embedded = 0
+    fetched = 0
+    try:
+        q = db.query(JiraIssue)
+        if issue_keys and isinstance(issue_keys, list) and len(issue_keys) > 0:
+            q = q.filter(JiraIssue.issue_key.in_([str(k).strip() for k in issue_keys if str(k).strip()]))
+        issues = q.limit(int(max_items)).all()
+        fetched = len(issues)
+
+        for issue in issues:
+            raw = issue.raw or {}
+            try:
+                text = build_embedding_text(raw) if isinstance(raw, dict) else str(raw)
+            except Exception:
+                # Fall back to stored fields if raw is missing/invalid.
+                parts: List[str] = [f"Issue: {issue.issue_key}", f"Summary: {issue.summary}"]
+                if issue.description:
+                    parts.append(f"Description: {issue.description}")
+                if issue.status:
+                    parts.append(f"Status: {issue.status}")
+                if issue.priority:
+                    parts.append(f"Priority: {issue.priority}")
+                if issue.components:
+                    parts.append(f"Components: {', '.join(issue.components)}")
+                text = "\n".join(parts)
+
+            emb = generate_embedding(text, task_type="retrieval_document")
+            if not isinstance(emb, list) or len(emb) == 0:
+                continue
+
+            db.merge(JiraEmbedding(issue_key=issue.issue_key, embedding=emb))
+            embedded += 1
+
+        db.commit()
+        return {"fetched": fetched, "embedded": embedded}
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def render_reembed_report(
+    *,
+    ctx: Dict[str, Any],
+    input_data: Dict[str, Any],
+) -> str:
+    """
+    Render a short summary for jira.reembed_from_db output.
+    """
+    if not isinstance(input_data, dict):
+        raise ValueError("input_data must be a dict (output from jira.reembed_from_db)")
+    fetched = input_data.get("fetched", 0)
+    embedded = input_data.get("embedded", 0)
+    return f"Re-embed complete: fetched={fetched}, embedded={embedded}\n"
 

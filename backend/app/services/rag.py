@@ -41,12 +41,22 @@ def process_rag_pipeline(session_id: str, use_mock_embedding: str = None, gemini
             # For testing: create a mock embedding if API fails
             if os.getenv("USE_MOCK_EMBEDDING", "false").lower() == "true":
                 print("[RAG] Using mock embedding for testing...")
+                # Match the main mock embedding behavior (deterministic + normalized)
+                import hashlib
+                import math
+                import random
+
                 provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
                 if provider == "sbert":
                     dim = int(os.getenv("MOCK_EMBED_DIM", "384"))
                 else:
                     dim = int(os.getenv("MOCK_EMBED_DIM", "768"))
-                embedding = [0.0] * dim
+
+                seed = int(hashlib.md5(embedding_text.encode("utf-8")).hexdigest(), 16) & 0xFFFFFFFF
+                rng = random.Random(seed)
+                embedding = [rng.uniform(-1.0, 1.0) for _ in range(dim)]
+                norm = math.sqrt(sum((x * x) for x in embedding)) or 1.0
+                embedding = [float(x / norm) for x in embedding]
             else:
                 print(f"[RAG] Embedding generation failed and mock mode is off")
                 raise

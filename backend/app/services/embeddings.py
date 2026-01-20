@@ -50,9 +50,19 @@ def _mock_embedding(text: str, dim: int = 768) -> list[float]:
     Deterministic mock embedding (useful for dev/test when providers are unavailable).
     """
     import hashlib
+    import math
+    import random
 
-    hash_int = int(hashlib.md5(text.encode()).hexdigest(), 16)
-    return [(hash_int % 1000) / 1000.0 for _ in range(dim)]
+    # IMPORTANT:
+    # Previous implementation returned the same constant value for every dimension,
+    # making all embeddings colinear and cosine similarity ~ 1.0 for almost everything.
+    # We instead generate a deterministic pseudo-random vector and L2-normalize it.
+    seed = int(hashlib.md5(text.encode("utf-8")).hexdigest(), 16) & 0xFFFFFFFF
+    rng = random.Random(seed)
+
+    vec = [rng.uniform(-1.0, 1.0) for _ in range(int(dim))]
+    norm = math.sqrt(sum((x * x) for x in vec)) or 1.0
+    return [float(x / norm) for x in vec]
 
 
 def _sbert_embedding(text: str) -> list[float]:

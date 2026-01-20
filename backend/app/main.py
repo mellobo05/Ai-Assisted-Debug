@@ -181,6 +181,8 @@ async def search_similar(request: QueryRequest):
             traceback.print_exc()
             print("[SEARCH] Falling back to mock embedding...")
             import hashlib
+            import math
+            import random
 
             hash_int = int(hashlib.md5(request.query.encode()).hexdigest(), 16)
             provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
@@ -189,7 +191,12 @@ async def search_similar(request: QueryRequest):
                 dim = int(os.getenv("MOCK_EMBED_DIM", "384"))
             else:
                 dim = int(os.getenv("MOCK_EMBED_DIM", "768"))
-            query_embedding = [(hash_int % 1000) / 1000.0 for _ in range(dim)]
+            # Generate a deterministic but non-colinear mock vector; normalize for cosine similarity.
+            seed = (hash_int & 0xFFFFFFFF)
+            rng = random.Random(seed)
+            query_embedding = [rng.uniform(-1.0, 1.0) for _ in range(dim)]
+            norm = math.sqrt(sum((x * x) for x in query_embedding)) or 1.0
+            query_embedding = [float(x / norm) for x in query_embedding]
             print(f"[SEARCH] Mock embedding generated, size: {len(query_embedding)}")
 
         # JIRA is the retrieval source (debug_sessions removed/ignored)

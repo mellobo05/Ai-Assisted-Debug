@@ -1,0 +1,18 @@
+workflow:
+  name: "JIRA: Re-embed from DB"
+  description: "Re-generate embeddings for issues already present in jira_issues (no JIRA API required)."
+
+  steps:
+    - step: "Re-embed issues"
+      action: "jira.reembed_from_db"
+      parameters:
+        issue_keys: "${inputs.issue_keys}"
+        max_items: "${inputs.max_results}"
+      options:
+        save_as: "reembed"
+
+    - step: "Render report"
+      action: "report.render_reembed"
+      options:
+        input: "steps.reembed"
+        save_as: "report"

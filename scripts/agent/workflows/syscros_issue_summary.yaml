@@ -1,0 +1,28 @@
+workflow:
+  name: "SYSCROS: Issue Summary + Similar Issues"
+  description: "Fetch a SYSCROS issue from local Postgres, then find similar issues via vector search."
+
+  steps:
+    - step: "Load issue from DB"
+      action: "jira.get_issue_from_db"
+      parameters:
+        issue_keys: "${inputs.issue_keys}"
+      options:
+        save_as: "issue"
+
+    - step: "Search similar JIRA issues"
+      action: "rag.search_similar_jira"
+      parameters:
+        query: "${steps.issue.embedding_text}"
+        limit: "${inputs.limit}"
+      options:
+        save_as: "search"
+
+    - step: "Render SYSCROS report"
+      action: "report.render_syscros_issue_summary"
+      parameters:
+        issue: "${steps.issue}"
+        similar: "${steps.search}"
+        max_items: "${inputs.limit}"
+      options:
+        save_as: "report"
