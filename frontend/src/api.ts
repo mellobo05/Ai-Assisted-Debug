@@ -11,6 +11,7 @@ export type DebugResponse = {
   os?: string;
   domain?: string;
   issue_summary?: string;
+  has_embedding?: boolean;
 };
 
 export type SearchRequest = {
@@ -85,6 +86,17 @@ export async function startDebug(payload: DebugRequest): Promise<DebugResponse> 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
+    },
+    15000
+  );
+}
+
+export async function getDebugStatus(sessionId: string): Promise<DebugResponse> {
+  return await fetchJsonWithTimeout<DebugResponse>(
+    `${API_BASE}/debug/${encodeURIComponent(sessionId)}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
     },
     15000
   );

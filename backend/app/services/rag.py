@@ -41,7 +41,12 @@ def process_rag_pipeline(session_id: str, use_mock_embedding: str = None, gemini
             # For testing: create a mock embedding if API fails
             if os.getenv("USE_MOCK_EMBEDDING", "false").lower() == "true":
                 print("[RAG] Using mock embedding for testing...")
-                embedding = [0.0] * 768  # Mock 768-dim vector
+                provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
+                if provider == "sbert":
+                    dim = int(os.getenv("MOCK_EMBED_DIM", "384"))
+                else:
+                    dim = int(os.getenv("MOCK_EMBED_DIM", "768"))
+                embedding = [0.0] * dim
             else:
                 print(f"[RAG] Embedding generation failed and mock mode is off")
                 raise

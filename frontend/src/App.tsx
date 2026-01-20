@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   getApiBase,
+  getDebugStatus,
   searchJira,
   startDebug,
   type DebugRequest,
@@ -67,6 +68,22 @@ export function App() {
 
   const canSearch = searchQuery.trim().length > 0 && !isSearching;
 
+  async function pollDebugStatus(sessionId: string) {
+    const startedAt = Date.now();
+    const maxWaitMs = 20000;
+
+    while (Date.now() - startedAt < maxWaitMs) {
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        const status = await getDebugStatus(sessionId);
+        setResult((prev) => ({ ...(prev ?? status), ...status }));
+        if (status.status && status.status !== "PROCESSING") break;
+      } catch {
+        // ignore transient errors while polling
+      }
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -80,9 +97,10 @@ export function App() {
         logs: form.logs.trim()
       });
       setResult(resp);
+      setIsSubmitting(false);
+      void pollDebugStatus(resp.session_id);
     } catch (err: any) {
       setError(err?.message ?? String(err));
-    } finally {
       setIsSubmitting(false);
     }
   }
@@ -192,7 +210,7 @@ export function App() {
                 className="buttonSecondary"
                 type="button"
                 onClick={() => {
-                  setForm({ issue_summary: "", domain: "", os: "windows", logs: "" });
+                  setForm({ issue_summary: "", domain: "", os: detectOs(), logs: "" });
                   setResult(null);
                   setError(null);
                 }}
@@ -246,6 +264,14 @@ export function App() {
                   <span className="statusPill">{result.status}</span>
                 </div>
               </div>
+              {"has_embedding" in result ? (
+                <div className="kv">
+                  <div className="k">has_embedding</div>
+                  <div className="v">
+                    <code>{String(Boolean(result.has_embedding))}</code>
+                  </div>
+                </div>
+              ) : null}
               <div className="hint">
                 The backend runs embedding generation asynchronously. You can check DB tables
                 (<code>debug_sessions</code>, <code>debug_embeddings</code>) to see progress.

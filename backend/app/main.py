@@ -6,7 +6,7 @@ import asyncio
 import os
 
 from app.db.session import SessionLocal
-from app.models.debug import DebugSession
+from app.models.debug import DebugSession, DebugEmbedding
 from app.services.rag import process_rag_pipeline
 from app.services.search import find_similar, find_similar_jira
 from app.services.embeddings import generate_embedding
@@ -44,6 +44,15 @@ class DebugRequest(BaseModel):
     domain: str
     os: str
     logs: str
+
+
+class DebugStatusResponse(BaseModel):
+    session_id: str
+    status: str
+    os: str | None = None
+    domain: str | None = None
+    issue_summary: str | None = None
+    has_embedding: bool = False
 
 class QueryRequest(BaseModel):
     query: str
@@ -105,6 +114,35 @@ async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
     finally:
         if 'db' in locals():
             db.close()
+
+
+@app.get("/debug/{session_id}", response_model=DebugStatusResponse)
+async def get_debug_status(session_id: str):
+    """
+    Fetch the latest status for a debug session.
+    Useful for UI polling since embeddings are generated asynchronously.
+    """
+    db = SessionLocal()
+    try:
+        session = db.query(DebugSession).filter(DebugSession.id == session_id).first()
+        if not session:
+            raise HTTPException(status_code=404, detail="Debug session not found")
+
+        has_embedding = (
+            db.query(DebugEmbedding).filter(DebugEmbedding.session_id == session.id).first()
+            is not None
+        )
+
+        return DebugStatusResponse(
+            session_id=str(session.id),
+            status=session.status or "PROCESSING",
+            os=session.os,
+            domain=session.domain,
+            issue_summary=session.issue_summary,
+            has_embedding=has_embedding,
+        )
+    finally:
+        db.close()
 
 @app.post("/search")
 async def search_similar(request: QueryRequest):
