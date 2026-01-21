@@ -15,6 +15,19 @@ from app.models.jira import JiraIssue, JiraEmbedding
 
 app = FastAPI(title="AI Assisted Debugger")
 
+# Warm up embedding provider on startup to avoid first-request latency (esp. SBERT).
+@app.on_event("startup")
+async def _warmup_embeddings() -> None:
+    try:
+        provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
+        if provider == "sbert":
+            # Trigger model load once at boot.
+            generate_embedding("warmup", task_type="retrieval_query")
+            print("[STARTUP] SBERT warmup complete")
+    except Exception as e:
+        # Don't block server start if warmup fails (e.g., model not downloaded yet).
+        print(f"[STARTUP] Embedding warmup skipped/failed: {e}")
+
 # Allow the React dev server to call the API from the browser
 app.add_middleware(
     CORSMiddleware,

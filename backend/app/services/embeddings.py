@@ -6,6 +6,10 @@ from pathlib import Path
 # Optional SBERT support (loaded lazily so backend can still run without it)
 _SBERT_MODEL = None
 
+# In-process embedding cache (LRU + TTL). Optional dependency: cachetools.
+_EMBEDDING_CACHE = None
+_EMBEDDING_CACHE_LOCK = None
+
 # Load environment variables from .env file (look in project root)
 # Calculate project root: backend/app/services/embeddings.py -> go up 3 levels
 _embeddings_file = Path(__file__).resolve()
@@ -43,6 +47,67 @@ if not env_loaded:
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
+
+
+def _get_embedding_cache():
+    """
+    Lazy-init an in-process cache for embeddings.
+
+    Env:
+      - EMBEDDING_CACHE_ENABLED: true|false (default true)
+      - EMBEDDING_CACHE_SIZE: max entries (default 256)
+      - EMBEDDING_CACHE_TTL_SECONDS: TTL in seconds (default 3600)
+    """
+    global _EMBEDDING_CACHE, _EMBEDDING_CACHE_LOCK
+
+    enabled = os.getenv("EMBEDDING_CACHE_ENABLED", "true").strip().lower() == "true"
+    if not enabled:
+        return None, None
+
+    if _EMBEDDING_CACHE is None:
+        try:
+            from cachetools import TTLCache  # type: ignore
+        except Exception:
+            # Cache is optional; if dependency is missing, run without cache.
+            return None, None
+
+        import threading
+
+        maxsize = int(os.getenv("EMBEDDING_CACHE_SIZE", "256"))
+        ttl = int(os.getenv("EMBEDDING_CACHE_TTL_SECONDS", "3600"))
+        _EMBEDDING_CACHE = TTLCache(maxsize=maxsize, ttl=ttl)
+        _EMBEDDING_CACHE_LOCK = threading.Lock()
+        print(f"[EMBEDDINGS] Cache enabled (maxsize={maxsize}, ttl={ttl}s)")
+
+    return _EMBEDDING_CACHE, _EMBEDDING_CACHE_LOCK
+
+
+def _cache_key(*, provider: str, task_type: str, model_name: str | None, text: str) -> str:
+    import hashlib
+
+    h = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return f"{provider}|{task_type}|{model_name or ''}|{h}"
+
+
+def _maybe_get_cached_embedding(*, provider: str, task_type: str, model_name: str | None, text: str):
+    cache, lock = _get_embedding_cache()
+    if cache is None or lock is None:
+        return None
+    key = _cache_key(provider=provider, task_type=task_type, model_name=model_name, text=text)
+    with lock:
+        v = cache.get(key)
+    if v is None:
+        return None
+    return list(v)  # stored as tuple for immutability
+
+
+def _maybe_set_cached_embedding(*, provider: str, task_type: str, model_name: str | None, text: str, embedding: list[float]):
+    cache, lock = _get_embedding_cache()
+    if cache is None or lock is None:
+        return
+    key = _cache_key(provider=provider, task_type=task_type, model_name=model_name, text=text)
+    with lock:
+        cache[key] = tuple(float(x) for x in embedding)
 
 
 def _mock_embedding(text: str, dim: int = 768) -> list[float]:
@@ -124,14 +189,35 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
     force_mock = os.getenv("USE_MOCK_EMBEDDING", "false").lower() == "true"
 
     if provider == "mock":
-        # Default mock dim matches Gemini; adjust via MOCK_EMBED_DIM if needed.
         dim = int(os.getenv("MOCK_EMBED_DIM", "768"))
+        cached = _maybe_get_cached_embedding(
+            provider="mock",
+            task_type=task_type,
+            model_name=str(dim),
+            text=text,
+        )
+        if cached is not None:
+            return cached
+        # Default mock dim matches Gemini; adjust via MOCK_EMBED_DIM if needed.
         print(f"[EMBEDDINGS] Using mock embedding (provider={provider}, dim={dim})")
-        return _mock_embedding(text, dim=dim)
+        emb = _mock_embedding(text, dim=dim)
+        _maybe_set_cached_embedding(provider="mock", task_type=task_type, model_name=str(dim), text=text, embedding=emb)
+        return emb
 
     if provider == "sbert":
+        model_name = os.getenv("SBERT_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2")
+        cached = _maybe_get_cached_embedding(
+            provider="sbert",
+            task_type=task_type,
+            model_name=model_name,
+            text=text,
+        )
+        if cached is not None:
+            return cached
         print("[EMBEDDINGS] Using SBERT embedding provider")
-        return _sbert_embedding(text)
+        emb = _sbert_embedding(text)
+        _maybe_set_cached_embedding(provider="sbert", task_type=task_type, model_name=model_name, text=text, embedding=emb)
+        return emb
 
     if provider != "gemini":
         raise ValueError(
@@ -140,8 +226,18 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
 
     if force_mock:
         dim = int(os.getenv("MOCK_EMBED_DIM", "768"))
+        cached = _maybe_get_cached_embedding(
+            provider="mock",
+            task_type=task_type,
+            model_name=str(dim),
+            text=text,
+        )
+        if cached is not None:
+            return cached
         print(f"[EMBEDDINGS] Using mock embedding (provider=gemini forced-mock, dim={dim})")
-        return _mock_embedding(text, dim=dim)
+        emb = _mock_embedding(text, dim=dim)
+        _maybe_set_cached_embedding(provider="mock", task_type=task_type, model_name=str(dim), text=text, embedding=emb)
+        return emb
 
     # Gemini provider
     api_key = os.getenv("GEMINI_API_KEY")
@@ -155,9 +251,27 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
     if not genai.api_key:
         genai.configure(api_key=api_key)
 
+    cached = _maybe_get_cached_embedding(
+        provider="gemini",
+        task_type=task_type,
+        model_name="models/embedding-001",
+        text=text,
+    )
+    if cached is not None:
+        return cached
+
     result = genai.embed_content(
         model="models/embedding-001",
         content=text,
         task_type=task_type,
     )
-    return result["embedding"]
+    emb = result["embedding"]
+    if isinstance(emb, list) and len(emb) > 0:
+        _maybe_set_cached_embedding(
+            provider="gemini",
+            task_type=task_type,
+            model_name="models/embedding-001",
+            text=text,
+            embedding=emb,
+        )
+    return emb

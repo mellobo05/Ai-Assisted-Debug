@@ -1,6 +1,8 @@
 param(
     # Use this for a stable demo/UI run to avoid mid-request reloads.
-    [switch]$NoReload
+    [switch]$NoReload,
+    # Change port if 8000 is already in use.
+    [int]$Port = 8000
 )
 
 # Run FastAPI server script
@@ -38,8 +40,10 @@ if (Test-Path $envFile) {
 }
 
 # Provider-aware checks
-$provider = ($env:EMBEDDING_PROVIDER | ForEach-Object { $_.ToLower() }) 
-if (-not $provider) { $provider = "gemini" }
+$provider = "gemini"
+if ($env:EMBEDDING_PROVIDER) {
+    $provider = $env:EMBEDDING_PROVIDER.ToLower()
+}
 $useMock = (($env:USE_MOCK_EMBEDDING | ForEach-Object { $_.ToLower() }) -eq "true")
 
 Write-Host "Embedding provider: $provider (USE_MOCK_EMBEDDING=$useMock)" -ForegroundColor Cyan
@@ -54,7 +58,7 @@ if (($provider -eq "gemini") -and (-not $useMock) -and (-not $env:GEMINI_API_KEY
 # The --reload flag is useful for development but can interrupt UI requests mid-flight.
 Write-Host "`nStarting uvicorn server..." -ForegroundColor Green
 if ($NoReload) {
-    python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+    python -m uvicorn backend.app.main:app --host 127.0.0.1 --port $Port
 } else {
-    python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+    python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port $Port
 }
