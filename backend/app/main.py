@@ -1,17 +1,19 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from uuid import uuid4
 import asyncio
 import os
+from uuid import UUID
 
 from app.db.session import SessionLocal
 from app.models.debug import DebugSession, DebugEmbedding
 from app.services.rag import process_rag_pipeline
-from app.services.search import find_similar, find_similar_jira
+from app.services.search import find_similar_jira
 from app.services.embeddings import generate_embedding
 from app.integrations.jira.client import JiraService, build_embedding_text, extract_issue_fields
 from app.models.jira import JiraIssue, JiraEmbedding
+from app.schemas.debug import DebugRequest, DebugStartResponse, DebugStatusResponse
+from app.schemas.jira import JiraSyncRequest, JiraSyncResponse
+from app.schemas.search import QueryRequest, SearchResponse, JiraSearchResult
 
 app = FastAPI(title="AI Assisted Debugger")
 
@@ -48,37 +50,10 @@ async def test_background(background_tasks: BackgroundTasks):
         import time
         time.sleep(1)
         print("[TEST] Background task completed!")
-    
     background_tasks.add_task(test_task)
     return {"message": "Background task scheduled"}
 
-class DebugRequest(BaseModel):
-    issue_summary: str
-    domain: str
-    os: str
-    logs: str
-
-
-class DebugStatusResponse(BaseModel):
-    session_id: str
-    status: str
-    os: str | None = None
-    domain: str | None = None
-    issue_summary: str | None = None
-    has_embedding: bool = False
-
-class QueryRequest(BaseModel):
-    query: str
-    limit: int = 3
-
-
-class JiraSyncRequest(BaseModel):
-    issue_keys: list[str] | None = None
-    jql: str | None = None
-    max_results: int = 25
-    max_comments: int = 25
-
-@app.post("/debug")
+@app.post("/debug", response_model=DebugStartResponse)
 async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
     try:
         #1. Save to DB 
@@ -111,14 +86,13 @@ async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
         asyncio.create_task(run_rag_async())
         print(f"Background task scheduled for session {session.id}")
         
-        return {
-            "session_id": str(session.id),
-            "status": "PROCESSING",
-            # Echo back what was saved so the UI can display/verify it
-            "os": session.os,
-            "domain": session.domain,
-            "issue_summary": session.issue_summary,
-        }
+        return DebugStartResponse(
+            session_id=session.id,
+            status="PROCESSING",
+            os=session.os,
+            domain=session.domain,
+            issue_summary=session.issue_summary,
+        )
     except Exception as e:
         print(f"Error in start_debug: {e}")
         import traceback
@@ -130,7 +104,7 @@ async def start_debug(request: DebugRequest, background_tasks: BackgroundTasks):
 
 
 @app.get("/debug/{session_id}", response_model=DebugStatusResponse)
-async def get_debug_status(session_id: str):
+async def get_debug_status(session_id: UUID):
     """
     Fetch the latest status for a debug session.
     Useful for UI polling since embeddings are generated asynchronously.
@@ -157,7 +131,7 @@ async def get_debug_status(session_id: str):
     finally:
         db.close()
 
-@app.post("/search")
+@app.post("/search", response_model=SearchResponse)
 async def search_similar(request: QueryRequest):
     """
     Search for similar debug sessions based on a query.
@@ -213,8 +187,10 @@ async def search_similar(request: QueryRequest):
             print(f"[SEARCH] Mock embedding generated, size: {len(query_embedding)}")
 
         # JIRA is the retrieval source (debug_sessions removed/ignored)
-        similar_jira = find_similar_jira(query_embedding, limit=request.limit)
-        return {"query": request.query, "results_count": len(similar_jira), "results": similar_jira}
+        similar_jira_raw = find_similar_jira(query_embedding, limit=request.limit)
+        # Validate/normalize results shape
+        results = [JiraSearchResult(**r) for r in similar_jira_raw]
+        return SearchResponse(query=request.query, results_count=len(results), results=results)
 
     except HTTPException:
         raise
@@ -226,7 +202,7 @@ async def search_similar(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Internal server error during search: {e}")
 
 
-@app.post("/jira/sync")
+@app.post("/jira/sync", response_model=JiraSyncResponse)
 async def jira_sync(request: JiraSyncRequest):
     """
     Ingest JIRA issues into Postgres + embeddings for semantic search.
@@ -235,9 +211,6 @@ async def jira_sync(request: JiraSyncRequest):
     - issue_keys: ["PROJ-123", "PROJ-456"]
     - jql: "project = PROJ ORDER BY updated DESC"
     """
-    if not request.issue_keys and not request.jql:
-        raise HTTPException(status_code=400, detail="Provide either issue_keys or jql")
-
     # Ensure .env is loaded for JIRA env vars in dev
     from dotenv import load_dotenv
     from pathlib import Path
