@@ -1,6 +1,8 @@
 # Core backend framework
 fastapi==0.110.0
-uvicorn[standard]==0.29.0
+# NOTE: On some Windows setups pip can fail resolving `uvicorn[standard]==X` due to extras handling.
+# `run_server.ps1` works fine with plain uvicorn; the "standard" deps are optional.
+uvicorn==0.29.0
 
 # Database & ORM
 sqlalchemy==2.0.29
@@ -26,7 +28,14 @@ numpy==1.26.3
 jira==3.5.2
 PyYAML==6.0.1
 sentence-transformers==2.6.1
-cachetools==5.3.3
+# Allow a small range so we don't force downloads if a compatible version is already installed.
+cachetools>=5.3.3,<6.0
+
+# LangChain / LangGraph (agents orchestration)
+# This repo is compatible with LangChain 0.3.x (Pydantic v2).
+langchain-core>=0.3,<0.4
+langchain>=0.3,<0.4
+langgraph>=0.2,<0.4
 
 # Testing
 pytest==8.1.1
