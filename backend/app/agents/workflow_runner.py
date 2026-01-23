@@ -34,8 +34,17 @@ def _get_by_path(obj: Any, path: str) -> Any:
     Resolve dotted paths like:
       inputs.query
       steps.sync.embedded
+    Also supports ADAG-style variables with no prefix:
+      target_jira_key   -> inputs.target_jira_key
     """
     cur: Any = obj
+    # ADAG-style: if the template is a single name, prefer ctx["inputs"][name]
+    # (so YAML can use ${target_jira_key} instead of ${inputs.target_jira_key}).
+    if "." not in path and isinstance(obj, dict):
+        inputs = obj.get("inputs")
+        if isinstance(inputs, dict) and path in inputs:
+            return inputs.get(path)
+
     for part in path.split("."):
         if isinstance(cur, dict):
             cur = cur.get(part)
@@ -129,7 +138,8 @@ def run_workflow(
                 params["input_data"] = _get_by_path(ctx, input_ref)
             elif isinstance(input_ref, list):
                 params = dict(params)
-                params["input_data"] = {k: _get_by_path(ctx, str(k)) for k in input_ref}
+                # Preserve the ref name as the key so subagent-like tools can access inputs predictably.
+                params["input_data"] = {str(k): _get_by_path(ctx, str(k)) for k in input_ref}
 
         out = tools[step.action](ctx=ctx, **(params or {}))
         ctx["steps"][save_as] = out

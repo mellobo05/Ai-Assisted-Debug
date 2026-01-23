@@ -1,0 +1,46 @@
+workflow:
+  name: "JIRA Similar Issues Finder (ADAG-style)"
+  description: "Offline/DB workflow: use already-imported JIRA data (e.g., from cleaned CSV) in Postgres, find similar issues via embeddings, and optionally run an LLM subagent analysis."
+  steps:
+    - step: "Load target issue from local DB"
+      action: "jira.get_issue_from_db"
+      parameters:
+        issue_key: ${target_jira_key}
+      options:
+        save_as: "target"
+
+    - step: "Embedding similarity search (DB)"
+      action: "rag.search_similar_jira"
+      parameters:
+        query: ${steps.target.embedding_text}
+        limit: ${max_results}
+        exclude_issue_keys:
+          - ${target_jira_key}
+      options:
+        save_as: "similar"
+
+    - step: "Render compact report"
+      action: "report.render_syscros_issue_summary"
+      parameters:
+        issue: ${steps.target}
+        similar: ${steps.similar}
+        max_items: ${max_results}
+        similarity_threshold: ${similarity_threshold}
+      options:
+        save_as: "report"
+
+    - step: "Analyze similarity and debugging guidance (LLM subagent)"
+      action: "llm.subagent"
+      parameters:
+        prompts:
+          - "From the fetched issues, treat ${target_jira_key} as the target issue."
+          - "Use the similarity results as candidates. Provide a ranked list with a technical similarity score (0-100)."
+          - "For each strong match, extract any apparent root cause and fix hints from title/description/comments if present."
+          - "If no issues meet similarity >= ${similarity_threshold}, say: No matching issues were found for JIRA ${target_jira_key}."
+      options:
+        # Provide structured inputs to the subagent as input_data.
+        input:
+          - "steps.target"
+          - "steps.similar"
+        save_as: "analysis"
+

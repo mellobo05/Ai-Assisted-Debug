@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict
 
 from . import jira_tools
+from . import llm_tools
 
 
 ToolFn = Callable[..., Any]
@@ -27,5 +28,7 @@ def build_default_tool_registry() -> Dict[str, ToolFn]:
         "report.render_similar_jira": jira_tools.render_similar_jira_report,
         "report.render_syscros_issue_summary": jira_tools.render_syscros_issue_summary_report,
         "report.render_reembed": jira_tools.render_reembed_report,
+        # Optional LLM "subagent" analysis step (falls back gracefully if no GEMINI_API_KEY)
+        "llm.subagent": llm_tools.subagent,
     }
 

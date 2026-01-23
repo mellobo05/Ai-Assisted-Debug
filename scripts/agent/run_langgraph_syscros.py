@@ -55,9 +55,15 @@ def _build_tools():
         return jira_tools.get_issue_from_db(ctx=ctx, issue_key=issue_key)
 
     @tool("rag.search_similar_jira")
-    def search_similar_jira(*, query: str, limit: int, ctx: Dict[str, Any]) -> Dict[str, Any]:
+    def search_similar_jira(
+        *,
+        query: str,
+        limit: int,
+        exclude_issue_keys: Optional[list[str]] = None,
+        ctx: Dict[str, Any],
+    ) -> Dict[str, Any]:
         """Search similar JIRA issues from DB using embeddings."""
-        return jira_tools.search_similar_jira(ctx=ctx, query=query, limit=limit)
+        return jira_tools.search_similar_jira(ctx=ctx, query=query, limit=limit, exclude_issue_keys=exclude_issue_keys)
 
     @tool("report.render_syscros_issue_summary")
     def render_syscros_issue_summary(*, issue: Dict[str, Any], similar: Dict[str, Any] | None, max_items: int, ctx: Dict[str, Any]) -> str:
@@ -96,7 +102,14 @@ def main() -> int:
 
     def node_search(state: SyscrosState) -> SyscrosState:
         query = (state.get("issue") or {}).get("embedding_text") or ""
-        out = tools["search_similar"].invoke({"query": query, "limit": state["limit"], "ctx": state["ctx"]})
+        out = tools["search_similar"].invoke(
+            {
+                "query": query,
+                "limit": state["limit"],
+                "exclude_issue_keys": [state["issue_key"]],
+                "ctx": state["ctx"],
+            }
+        )
         state["ctx"]["steps"]["search"] = out
         return {"search": out, "ctx": state["ctx"]}
 

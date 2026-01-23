@@ -2,7 +2,7 @@ from app.db.session import SessionLocal
 from app.models.debug import DebugEmbedding, DebugSession
 from app.models.jira import JiraEmbedding, JiraIssue
 import numpy as np
-from typing import List, Dict
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 
 def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
@@ -106,14 +106,18 @@ def find_similar(query_embedding: List[float], limit: int = 3) -> List[Dict]:
         db.close()
 
 
-def find_similar_jira(query_embedding: List[float], limit: int = 3) -> List[Dict]:
+def find_similar_jira(
+    query_embedding: List[float],
+    limit: int = 3,
+    exclude_issue_keys: Optional[Iterable[str]] = None,
+) -> List[Dict]:
     """
     Find similar JIRA issues based on query embedding using cosine similarity.
     JSON embeddings, so similarity is computed in Python.
     """
     db = SessionLocal()
     try:
-        all_embeddings = db.query(JiraEmbedding).all()
+        all_embeddings = db.query(JiraEmbedding.issue_key, JiraEmbedding.embedding).all()
         if not all_embeddings:
             return []
 
@@ -125,30 +129,45 @@ def find_similar_jira(query_embedding: List[float], limit: int = 3) -> List[Dict
             return []
 
         query_dim = len(query_embedding)
-        results: List[Dict] = []
+        exclude: Set[str] = set()
+        if exclude_issue_keys:
+            exclude = {str(k).strip() for k in exclude_issue_keys if str(k).strip()}
 
-        for db_embedding in all_embeddings:
-            stored_embedding = db_embedding.embedding
+        scored: List[Tuple[str, float]] = []
+        for issue_key, stored_embedding in all_embeddings:
             if not isinstance(stored_embedding, list):
                 continue
             if len(stored_embedding) != query_dim:
                 continue
 
             similarity = cosine_similarity(query_embedding, stored_embedding)
+            k = str(issue_key or "").strip()
+            if not k or k in exclude:
+                continue
+            scored.append((k, similarity))
 
-            issue = (
-                db.query(JiraIssue)
-                .filter(JiraIssue.issue_key == db_embedding.issue_key)
-                .first()
-            )
+        if not scored:
+            return []
+
+        scored.sort(key=lambda t: t[1], reverse=True)
+        top = scored[: int(limit)]
+        top_keys = [k for k, _ in top]
+        sim_by_key = {k: s for k, s in top}
+
+        # Batch fetch issue rows (avoid N+1 queries)
+        issues = db.query(JiraIssue).filter(JiraIssue.issue_key.in_(top_keys)).all()
+        issue_by_key: Dict[str, JiraIssue] = {i.issue_key: i for i in issues if i and i.issue_key}
+
+        results: List[Dict] = []
+        for k in top_keys:
+            issue = issue_by_key.get(k)
             if not issue:
                 continue
-
             results.append(
                 {
                     "source": "jira",
                     "issue_key": issue.issue_key,
-                    "similarity": similarity,
+                    "similarity": float(sim_by_key.get(k, 0.0)),
                     "summary": issue.summary,
                     "status": issue.status,
                     "priority": issue.priority,
@@ -159,13 +178,16 @@ def find_similar_jira(query_embedding: List[float], limit: int = 3) -> List[Dict
                     "labels": getattr(issue, "labels", None),
                     "components": getattr(issue, "components", None),
                     "latest_comment": (
-                        (issue.comments[0].get("body") if isinstance(issue.comments, list) and issue.comments else None)
+                        (
+                            issue.comments[-1].get("body")
+                            if isinstance(issue.comments, list) and issue.comments and isinstance(issue.comments[-1], dict)
+                            else None
+                        )
                     ),
                 }
             )
 
-        results.sort(key=lambda x: x["similarity"], reverse=True)
-        return results[:limit]
+        return results
     except Exception as e:
         print(f"[SEARCH] Error finding similar JIRA embeddings: {e}")
         import traceback

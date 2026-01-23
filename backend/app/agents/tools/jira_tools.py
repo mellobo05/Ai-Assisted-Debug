@@ -168,12 +168,13 @@ def search_similar_jira(
     ctx: Dict[str, Any],
     query: str,
     limit: int = 5,
+    exclude_issue_keys: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Query -> embedding -> cosine similarity search against jira_embeddings.
     """
     query_embedding = generate_embedding(query, task_type="retrieval_query")
-    results = find_similar_jira(query_embedding, limit=limit)
+    results = find_similar_jira(query_embedding, limit=limit, exclude_issue_keys=exclude_issue_keys)
     return {"query": query, "results_count": len(results), "results": results}
 
 
@@ -228,6 +229,7 @@ def render_syscros_issue_summary_report(
     issue: Dict[str, Any],
     similar: Optional[Dict[str, Any]] = None,
     max_items: int = 5,
+    similarity_threshold: Optional[float] = None,
 ) -> str:
     """
     Render a single human-readable report:
@@ -273,15 +275,46 @@ def render_syscros_issue_summary_report(
     if similar and isinstance(similar, dict):
         results = similar.get("results") or []
         if isinstance(results, list) and results:
-            lines.append("Similar issues:")
-            for i, r in enumerate(results[:max_items], start=1):
-                issue_key = r.get("issue_key")
-                sim = r.get("similarity", 0.0)
-                summary = r.get("summary") or ""
-                status = r.get("status") or ""
-                priority = r.get("priority") or ""
-                lines.append(f"{i}. {issue_key}  sim={sim:.4f}  [{status} | {priority}]  {summary}")
-            lines.append("")
+            # Optional threshold (percent 0-100). We treat similarity as cosine and scale by 100.
+            original_results = list(results)
+            if similarity_threshold is not None:
+                try:
+                    thr = float(similarity_threshold)
+                except Exception:
+                    thr = None
+                if thr is not None:
+                    filtered = []
+                    for r in results:
+                        try:
+                            sim = float(r.get("similarity", 0.0))
+                        except Exception:
+                            sim = 0.0
+                        if (sim * 100.0) >= thr:
+                            filtered.append(r)
+                    results = filtered
+
+            if results:
+                lines.append("Similar issues:")
+                for i, r in enumerate(results[:max_items], start=1):
+                    issue_key = r.get("issue_key")
+                    sim = r.get("similarity", 0.0)
+                    summary = r.get("summary") or ""
+                    status = r.get("status") or ""
+                    priority = r.get("priority") or ""
+                    lines.append(f"{i}. {issue_key}  sim={sim:.4f}  [{status} | {priority}]  {summary}")
+                lines.append("")
+            else:
+                # Be explicit when filtering removes everything.
+                best = 0.0
+                try:
+                    best = max(float(r.get("similarity", 0.0)) for r in original_results)
+                except Exception:
+                    best = 0.0
+                lines.append(
+                    f"No similar issues met similarity_threshold={similarity_threshold} "
+                    f"(best={best*100.0:.1f}/100)."
+                )
+                lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
 

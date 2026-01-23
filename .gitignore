@@ -38,3 +38,8 @@ Thumbs.db
 *.md
 setup_database.ps1
 reset_postgres_password.ps1
+
+# Local scratch / debug scripts (may contain credentials)
+check_background_task.py
+troubleshoot_network.py
+backend/app/models/debug_temp.py
