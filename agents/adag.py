@@ -1,0 +1,191 @@
+"""
+ADAG-style CLI wrapper for this repo.
+
+Goal
+----
+Support a simple command like:
+
+  cd agents
+  python adag.py --prompt "Fetch and summarize: SYSCROS-123559" --save_trace
+
+This is intentionally *offline-friendly*:
+- It fetches the issue from local Postgres (jira_issues table), not from live JIRA.
+- It can run with mock or SBERT embeddings (controlled by env vars).
+
+What it does (flow)
+-------------------
+1) Parse CLI args
+   - Reads --prompt
+   - Enables trace-to-file if --save_trace is set
+2) Build runtime + env
+   - Adds repo /backend to sys.path so `from app...` imports work when running from `agents/`
+   - Loads `.env` with override=False (shell vars win)
+3) Route to "prompt agent" mode
+   - Detects the JIRA key in the prompt (e.g., SYSCROS-123559)
+   - Runs deterministic tool calls (no LLM tool-calling loop needed):
+       jira.get_issue_from_db
+       rag.search_similar_jira
+       report.render_syscros_issue_summary
+4) Print the final report (clean summary)
+5) If --save_trace, write a markdown trace:
+   - agents/traces/<run_id>.md
+
+Notes
+-----
+If Gemini network/API is blocked, keep:
+  $env:LLM_ENABLED="false"
+or simply omit GEMINI_API_KEY; this prompt flow does not require the LLM.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+import uuid
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+
+JIRA_KEY_RE = re.compile(r"\b[A-Z][A-Z0-9]+-\d+\b")
+
+
+@dataclass
+class TraceWriter:
+    enabled: bool
+    path: Optional[Path] = None
+
+    def event(self, name: str, payload: Optional[Dict[str, Any]] = None) -> None:
+        if not self.enabled or not self.path:
+            return
+        payload = payload if isinstance(payload, dict) else {}
+        ts = datetime.now(timezone.utc).isoformat()
+        block = {
+            "ts": ts,
+            "event": name,
+            "payload": payload,
+        }
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open("a", encoding="utf-8") as f:
+            f.write(f"\n## {name}\n\n")
+            f.write("```json\n")
+            f.write(json.dumps(block, indent=2, ensure_ascii=False))
+            f.write("\n```\n")
+
+
+def _repo_root() -> Path:
+    # agents/adag.py -> repo root is one level up from agents/
+    return Path(__file__).resolve().parents[1]
+
+
+def _setup_imports_and_env(repo_root: Path) -> None:
+    # Make `from app...` work even when running from `agents/`.
+    sys.path.insert(0, str(repo_root / "backend"))
+
+    env_path = repo_root / ".env"
+    if env_path.exists():
+        try:
+            from dotenv import load_dotenv
+
+            load_dotenv(dotenv_path=env_path, override=False)
+        except Exception:
+            # If python-dotenv isn't installed, continue (env vars can be set in shell).
+            pass
+
+
+def _extract_jira_key(prompt: str) -> str:
+    m = JIRA_KEY_RE.search(prompt or "")
+    if not m:
+        raise SystemExit(
+            "Could not find a JIRA key in --prompt. Example: "
+            '--prompt "Fetch and summarize: SYSCROS-123559"'
+        )
+    return m.group(0)
+
+
+def _run_fetch_and_summarize(*, issue_key: str, limit: int, trace: TraceWriter) -> str:
+    """
+    Deterministic "agent" that produces a clean summary.
+    """
+    from app.agents.tools import jira_tools
+
+    ctx: Dict[str, Any] = {"inputs": {"issue_key": issue_key, "limit": limit}, "steps": {}}
+
+    trace.event("tool_call", {"tool": "jira.get_issue_from_db", "issue_key": issue_key})
+    issue = jira_tools.get_issue_from_db(ctx=ctx, issue_key=issue_key)
+    ctx["steps"]["issue"] = issue
+
+    # Similarity search is optional but cheap when embeddings are cached and stored locally.
+    trace.event(
+        "tool_call",
+        {"tool": "rag.search_similar_jira", "limit": limit, "exclude_issue_keys": [issue_key]},
+    )
+    similar = jira_tools.search_similar_jira(
+        ctx=ctx,
+        query=str(issue.get("embedding_text") or ""),
+        limit=int(limit),
+        exclude_issue_keys=[issue_key],
+    )
+    ctx["steps"]["search"] = similar
+
+    trace.event(
+        "tool_call",
+        {"tool": "report.render_syscros_issue_summary", "max_items": limit},
+    )
+    report = jira_tools.render_syscros_issue_summary_report(
+        ctx=ctx, issue=issue, similar=similar, max_items=int(limit)
+    )
+    ctx["steps"]["report"] = report
+    return report
+
+
+def main() -> int:
+    repo_root = _repo_root()
+    _setup_imports_and_env(repo_root)
+
+    parser = argparse.ArgumentParser(description="ADAG-style prompt runner (offline-friendly).")
+    parser.add_argument("--prompt", required=True, help='Example: "Fetch and summarize: SYSCROS-123559"')
+    parser.add_argument("--save_trace", action="store_true", help="Write a markdown trace under agents/traces/")
+    parser.add_argument("--limit", type=int, default=5, help="How many similar issues to show")
+    args = parser.parse_args()
+
+    run_id = uuid.uuid4().hex
+    trace_path = repo_root / "agents" / "traces" / f"{run_id}.md"
+    trace = TraceWriter(enabled=bool(args.save_trace), path=trace_path if args.save_trace else None)
+
+    issue_key = _extract_jira_key(args.prompt)
+
+    trace.event(
+        "run_start",
+        {
+            "run_id": run_id,
+            "cwd": str(Path.cwd()),
+            "prompt": args.prompt,
+            "issue_key": issue_key,
+            "limit": int(args.limit),
+            "env": {
+                "EMBEDDING_PROVIDER": os.getenv("EMBEDDING_PROVIDER"),
+                "USE_MOCK_EMBEDDING": os.getenv("USE_MOCK_EMBEDDING"),
+                "EMBEDDING_CACHE_ENABLED": os.getenv("EMBEDDING_CACHE_ENABLED"),
+                "LLM_ENABLED": os.getenv("LLM_ENABLED"),
+            },
+        },
+    )
+
+    report = _run_fetch_and_summarize(issue_key=issue_key, limit=int(args.limit), trace=trace)
+
+    trace.event("run_complete", {"run_id": run_id, "report_chars": len(report or "")})
+
+    print(report, end="" if report.endswith("\n") else "\n")
+    if trace.enabled and trace.path:
+        print(f"\n[trace] {trace.path}\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

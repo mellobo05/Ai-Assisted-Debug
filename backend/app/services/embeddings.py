@@ -3,6 +3,16 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
+# Embeddings logging can be noisy for CLI/UI users. Gate it behind an env flag.
+def _embeddings_debug_enabled() -> bool:
+    return os.getenv("EMBEDDINGS_DEBUG", "false").strip().lower() == "true"
+
+
+def _log(msg: str) -> None:
+    if _embeddings_debug_enabled():
+        print(msg)
+
+
 # Optional SBERT support (loaded lazily so backend can still run without it)
 _SBERT_MODEL = None
 
@@ -31,16 +41,16 @@ for env_path in possible_paths:
         # a user-supplied USE_MOCK_EMBEDDING=false in PowerShell.
         load_dotenv(dotenv_path=env_path, override=False)
         env_loaded = True
-        print(f"[EMBEDDINGS] Loaded .env from: {env_path}")
+        _log(f"[EMBEDDINGS] Loaded .env from: {env_path}")
         break
 
 if not env_loaded:
     # If .env not found, try loading from current directory
     load_dotenv(override=False)
-    print(f"[EMBEDDINGS] WARNING: .env file not found. Tried paths: {[str(p) for p in possible_paths]}")
-    print(f"[EMBEDDINGS] Current working directory: {Path.cwd()}")
-    print(f"[EMBEDDINGS] Embeddings file location: {_embeddings_file}")
-    print(f"[EMBEDDINGS] Project root calculated as: {_project_root}")
+    _log(f"[EMBEDDINGS] WARNING: .env file not found. Tried paths: {[str(p) for p in possible_paths]}")
+    _log(f"[EMBEDDINGS] Current working directory: {Path.cwd()}")
+    _log(f"[EMBEDDINGS] Embeddings file location: {_embeddings_file}")
+    _log(f"[EMBEDDINGS] Project root calculated as: {_project_root}")
 
 # Configure Gemini API - Get from environment variable
 # Only configure if API key is available (allows mock mode)
@@ -77,7 +87,7 @@ def _get_embedding_cache():
         ttl = int(os.getenv("EMBEDDING_CACHE_TTL_SECONDS", "3600"))
         _EMBEDDING_CACHE = TTLCache(maxsize=maxsize, ttl=ttl)
         _EMBEDDING_CACHE_LOCK = threading.Lock()
-        print(f"[EMBEDDINGS] Cache enabled (maxsize={maxsize}, ttl={ttl}s)")
+        _log(f"[EMBEDDINGS] Cache enabled (maxsize={maxsize}, ttl={ttl}s)")
 
     return _EMBEDDING_CACHE, _EMBEDDING_CACHE_LOCK
 
@@ -199,7 +209,7 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
         if cached is not None:
             return cached
         # Default mock dim matches Gemini; adjust via MOCK_EMBED_DIM if needed.
-        print(f"[EMBEDDINGS] Using mock embedding (provider={provider}, dim={dim})")
+        _log(f"[EMBEDDINGS] Using mock embedding (provider={provider}, dim={dim})")
         emb = _mock_embedding(text, dim=dim)
         _maybe_set_cached_embedding(provider="mock", task_type=task_type, model_name=str(dim), text=text, embedding=emb)
         return emb
@@ -214,7 +224,7 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
         )
         if cached is not None:
             return cached
-        print("[EMBEDDINGS] Using SBERT embedding provider")
+        _log("[EMBEDDINGS] Using SBERT embedding provider")
         emb = _sbert_embedding(text)
         _maybe_set_cached_embedding(provider="sbert", task_type=task_type, model_name=model_name, text=text, embedding=emb)
         return emb
@@ -234,7 +244,7 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
         )
         if cached is not None:
             return cached
-        print(f"[EMBEDDINGS] Using mock embedding (provider=gemini forced-mock, dim={dim})")
+        _log(f"[EMBEDDINGS] Using mock embedding (provider=gemini forced-mock, dim={dim})")
         emb = _mock_embedding(text, dim=dim)
         _maybe_set_cached_embedding(provider="mock", task_type=task_type, model_name=str(dim), text=text, embedding=emb)
         return emb
