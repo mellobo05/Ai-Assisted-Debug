@@ -18,7 +18,7 @@ PostgreSQL error: `extension "vector" is not available`
    ```powershell
    docker run --name pgvector-db `
      -e POSTGRES_USER=postgres `
-     -e POSTGRES_PASSWORD=1234567890 `
+     -e POSTGRES_PASSWORD=<YOUR_PASSWORD> `
      -e POSTGRES_DB=postgres `
      -p 5432:5432 `
      -d pgvector/pgvector:pg16

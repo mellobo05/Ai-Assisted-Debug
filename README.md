@@ -15,7 +15,9 @@ AI-powered **Auto Debug Assistant** that uses your locally ingested JIRA data (P
 
 #### 1) Confirm Postgres is running
 This repo assumes Postgres is available at:
-- `postgresql://postgres:1234567890@localhost:5432/postgres` (see `backend/app/db/session.py`)
+- `postgresql://postgres:<YOUR_PASSWORD>@localhost:5432/postgres`
+
+Configure credentials via environment variables / `.env` (recommended), or update your local `DATABASE_URL`.
 
 If you have a local Postgres install, ensure it’s started and listening on **5432**.
 
@@ -119,7 +121,7 @@ Connect with:
 - **Port**: `5432`
 - **DB**: `postgres`
 - **User**: `postgres`
-- **Password**: `1234567890`
+- **Password**: `<YOUR_PASSWORD>`
 
 Then browse:
 `Servers → <server> → Databases → postgres → Schemas → public → Tables → jira_issues`
