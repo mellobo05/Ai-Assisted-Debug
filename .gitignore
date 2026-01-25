@@ -38,8 +38,8 @@ traces/
 .DS_Store
 Thumbs.db
 
-# Project specific
-*.md
+# Docs are part of the repo (README, runbooks, etc.)
+# NOTE: keep traces ignored via agents/traces/ and traces/ above.
 setup_database.ps1
 reset_postgres_password.ps1
 
