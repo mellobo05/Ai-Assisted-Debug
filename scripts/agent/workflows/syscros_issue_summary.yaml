@@ -26,3 +26,20 @@ workflow:
         max_items: "${inputs.limit}"
       options:
         save_as: "report"
+
+    - step: "Root-cause summary (LLM subagent)"
+      action: "llm.subagent"
+      parameters:
+        prompts:
+          - "You are an expert debugging assistant. Produce a root-cause oriented summary for the target issue."
+          - "Use the target issue fields and the similar issues list as evidence. Do not invent details."
+          - "Output (concise):"
+          - "Probable root cause (ranked hypotheses + confidence 0-100)"
+          - "Evidence (quotes/snippets from issue/comments)"
+          - "Next debugging steps (5-8)"
+          - "Suggested fix/mitigation"
+      options:
+        input:
+          - "steps.issue"
+          - "steps.search"
+        save_as: "analysis"

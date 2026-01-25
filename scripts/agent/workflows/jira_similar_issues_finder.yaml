@@ -33,10 +33,15 @@ workflow:
       action: "llm.subagent"
       parameters:
         prompts:
-          - "From the fetched issues, treat ${target_jira_key} as the target issue."
-          - "Use the similarity results as candidates. Provide a ranked list with a technical similarity score (0-100)."
-          - "For each strong match, extract any apparent root cause and fix hints from title/description/comments if present."
-          - "If no issues meet similarity >= ${similarity_threshold}, say: No matching issues were found for JIRA ${target_jira_key}."
+          - "You are an expert debugging assistant. Your goal is to propose the most likely root cause and next actions for the target issue."
+          - "Target issue key: ${target_jira_key}. Use the provided target issue fields (summary/description/comments/components) plus the similarity results as supporting evidence."
+          - "Do NOT invent facts. If evidence is missing, say what is missing and how to collect it."
+          - "Output format (concise, action-oriented):"
+          - "1) Probable root cause (1-3 hypotheses, ranked) with confidence 0-100."
+          - "2) Evidence: cite specific phrases from the target issue and/or similar issues that support each hypothesis."
+          - "3) Next debugging steps: 5-8 concrete checks/commands/logs to gather."
+          - "4) Suggested fix/mitigation: what to change/try first, and rollback/safety notes."
+          - "If no issues meet similarity >= ${similarity_threshold}, still provide hypotheses based on the target issue alone, and clearly state 'No strong historical matches'."
       options:
         # Provide structured inputs to the subagent as input_data.
         input:

@@ -33,12 +33,56 @@ def subagent(
 
         debug_prompts = os.getenv("LLM_SUBAGENT_DEBUG", "false").strip().lower() == "true"
 
+        def _snip(text: Any, n: int) -> str:
+            s = (str(text or "")).strip().replace("\n", " ")
+            return (s[: n - 3] + "...") if len(s) > n else s
+
+        def _guess_hypotheses() -> list[str]:
+            """
+            Lightweight, offline heuristic hints. This is NOT a real LLM.
+            We try to extract signals from summary/description/comments.
+            """
+            s = " ".join(
+                [
+                    str(issue.get("summary") or ""),
+                    str(issue.get("description") or ""),
+                    str(issue.get("latest_comment") or ""),
+                ]
+            ).lower()
+            hyps: list[str] = []
+
+            if any(k in s for k in ["needs enablement", "enablement", "feature flag", "flag", "server-side", "upstream"]):
+                hyps.append("Feature/enablement is disabled or gated upstream (check flags, policies, remote config).")
+            if any(k in s for k in ["not enabled", "disabled", "not working", "fails to", "unable to"]):
+                hyps.append("Capability negotiation/config mismatch (check runtime config, codecs/features negotiated, permissions).")
+            if any(k in s for k in ["timeout", "hang", "stuck", "deadlock"]):
+                hyps.append("Timeout/hang likely due to blocking call or network/proxy issue (check logs, timeouts, DNS).")
+            if any(k in s for k in ["crash", "segfault", "null pointer", "assert", "exception", "stack trace"]):
+                hyps.append("Runtime crash/exception (look for stack traces and recent code changes/regressions).")
+            if any(k in s for k in ["ssl", "certificate", "handshake", "proxy", "forbidden", "unauthorized", "auth"]):
+                hyps.append("Connectivity/auth/proxy/cert issue (verify network route, cert chain, and credentials).")
+
+            if not hyps:
+                hyps.append("Insufficient evidence offline — collect logs, repro steps, and exact error messages.")
+            return hyps[:3]
+
         lines: List[str] = []
         # Keep this output short and action-oriented (like ADAG).
         lines.append(f"Analysis: skipped LLM ({reason})")
         if issue:
             lines.append(f"Target: {issue.get('issue_key')} — {(issue.get('summary') or '').strip()}")
+            comps = issue.get("components") if isinstance(issue.get("components"), list) else []
+            if comps:
+                lines.append(f"Components: {', '.join([str(c) for c in comps if str(c).strip()])}")
+            if issue.get("latest_comment"):
+                lines.append(f"Latest comment (snippet): {_snip(issue.get('latest_comment'), 220)}")
+
+            lines.append("")
+            lines.append("Probable root cause (offline hints):")
+            for i, h in enumerate(_guess_hypotheses(), start=1):
+                lines.append(f"{i}. {h}")
         if results:
+            lines.append("")
             lines.append("Top matches:")
             for i, r in enumerate(results[:10], start=1):
                 try:
@@ -46,6 +90,12 @@ def subagent(
                 except Exception:
                     sim = 0.0
                 lines.append(f"{i}. {r.get('issue_key')}  score={sim*100.0:.1f}  {(r.get('summary') or '').strip()}".rstrip())
+            lines.append("")
+            lines.append("Next debugging steps (generic):")
+            lines.append("- Reproduce with timestamps + collect relevant logs for the failing window.")
+            lines.append("- Confirm environment details (OS/build/version, device, codec/feature flags, network/proxy).")
+            lines.append("- Search logs for explicit errors/warnings; attach the exact first failure.")
+            lines.append("- Compare against the closest historical match; diff configuration and recent changes.")
 
         # Optional debug: print the original instructions when explicitly requested.
         if debug_prompts and prompt_text:

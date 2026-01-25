@@ -151,6 +151,11 @@ def main() -> int:
     parser.add_argument("--prompt", required=True, help='Example: "Fetch and summarize: SYSCROS-123559"')
     parser.add_argument("--save_trace", action="store_true", help="Write a markdown trace under agents/traces/")
     parser.add_argument("--limit", type=int, default=5, help="How many similar issues to show")
+    parser.add_argument(
+        "--no-analysis",
+        action="store_true",
+        help="Disable the root-cause analysis section (llm.subagent).",
+    )
     args = parser.parse_args()
 
     run_id = uuid.uuid4().hex
@@ -176,11 +181,51 @@ def main() -> int:
         },
     )
 
+    # Step 1: fetch + similar + report
     report = _run_fetch_and_summarize(issue_key=issue_key, limit=int(args.limit), trace=trace)
 
-    trace.event("run_complete", {"run_id": run_id, "report_chars": len(report or "")})
+    analysis = ""
+    if not bool(args.no_analysis):
+        try:
+            from app.agents.tools import jira_tools, llm_tools
+
+            # Re-run the deterministic steps, but keep data local so we can pass structured input.
+            # (We avoid refactoring too much here; correctness > DRY for this small CLI.)
+            ctx: Dict[str, Any] = {"inputs": {"issue_key": issue_key, "limit": int(args.limit)}, "steps": {}}
+            issue = jira_tools.get_issue_from_db(ctx=ctx, issue_key=issue_key)
+            similar = jira_tools.search_similar_jira(
+                ctx=ctx,
+                query=str(issue.get("embedding_text") or ""),
+                limit=int(args.limit),
+                exclude_issue_keys=[issue_key],
+            )
+            trace.event("tool_call", {"tool": "llm.subagent", "mode": "root_cause_summary"})
+            analysis = llm_tools.subagent(
+                ctx=ctx,
+                prompts=[
+                    "You are an expert debugging assistant. Produce a root-cause oriented summary for the target issue.",
+                    f"Target issue key: {issue_key}. Use the target issue fields and the similar issues list as evidence. Do not invent details.",
+                    "Output (concise):",
+                    "Probable root cause (ranked hypotheses + confidence 0-100)",
+                    "Evidence (quotes/snippets from issue/comments)",
+                    "Next debugging steps (5-8)",
+                    "Suggested fix/mitigation",
+                ],
+                input_data={"issue": issue, "similar": similar},
+            )
+        except Exception as e:
+            # Keep the CLI resilient; report is still useful even if analysis fails.
+            trace.event("analysis_error", {"error": str(e)})
+            analysis = ""
+
+    trace.event(
+        "run_complete",
+        {"run_id": run_id, "report_chars": len(report or ""), "analysis_chars": len(analysis or "")},
+    )
 
     print(report, end="" if report.endswith("\n") else "\n")
+    if isinstance(analysis, str) and analysis.strip():
+        print(analysis, end="" if analysis.endswith("\n") else "\n")
     if trace.enabled and trace.path:
         print(f"\n[trace] {trace.path}\n")
     return 0
