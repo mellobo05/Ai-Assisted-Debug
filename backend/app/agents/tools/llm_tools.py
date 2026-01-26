@@ -42,6 +42,8 @@ def subagent(
         issue = payload.get("issue") if isinstance(payload.get("issue"), dict) else {}
         similar = payload.get("similar") if isinstance(payload.get("similar"), dict) else {}
         results = similar.get("results") if isinstance(similar.get("results"), list) else []
+        log_signals = payload.get("log_signals") if isinstance(payload.get("log_signals"), dict) else {}
+        log_signal_lines = log_signals.get("signals") if isinstance(log_signals.get("signals"), list) else []
         external_refs = payload.get("external_refs") if isinstance(payload.get("external_refs"), dict) else {}
         external_results = (
             external_refs.get("results") if isinstance(external_refs.get("results"), list) else []
@@ -67,14 +69,36 @@ def subagent(
             Lightweight, offline heuristic hints. This is NOT a real LLM.
             We try to extract signals from summary/description/comments.
             """
+            # Combine signals from issue + latest comment + extracted log signatures (if provided).
             s = " ".join(
                 [
                     str(issue.get("summary") or ""),
                     str(issue.get("description") or ""),
                     str(issue.get("latest_comment") or ""),
+                    " ".join([str(x) for x in log_signal_lines[:30]]),
                 ]
             ).lower()
             hyps: list[str] = []
+
+            # Codec / decode failures (common in media pipelines)
+            if any(
+                k in s
+                for k in [
+                    "decodererror",
+                    "decode error",
+                    "decoding error",
+                    "cros-codecs",
+                    "codec",
+                    "hevc",
+                    "h.265",
+                    "transcoding",
+                    "vaapi",
+                    "v4l2",
+                ]
+            ):
+                hyps.append(
+                    "Media codec/decoder pipeline failure (e.g., cros-codecs DecoderError) — likely codec support/regression/driver/firmware issue; check decoder logs, codec capabilities, and recent media stack changes."
+                )
 
             if any(k in s for k in ["needs enablement", "enablement", "feature flag", "flag", "server-side", "upstream"]):
                 hyps.append("Feature/enablement is disabled or gated upstream (check flags, policies, remote config).")
@@ -111,6 +135,10 @@ def subagent(
                 lines.append(f"Components: {', '.join([str(c) for c in comps if str(c).strip()])}")
             if issue.get("latest_comment"):
                 lines.append(f"Latest comment (snippet): {_snip(issue.get('latest_comment'), 220)}")
+
+            # Surface the most important extracted signals (helps explain why a hypothesis was chosen).
+            if log_signal_lines:
+                lines.append(f"Log signals (top): {_snip(' | '.join([str(x) for x in log_signal_lines[:6]]), 240)}")
 
             lines.append("")
             lines.append("Probable root cause (offline hints):")
