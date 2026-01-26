@@ -14,8 +14,10 @@ def subagent(
     """
     ADA/ADAG-style "subagent" step.
 
-    If GEMINI_API_KEY is configured, this will call Gemini to produce an analysis.
-    Otherwise it returns a deterministic, offline-friendly fallback summary.
+    Provider selection:
+      - If LLM_PROVIDER=openai (or OPENAI_API_KEY is set), use OpenAI via HTTP (no extra deps).
+      - Else if LLM_PROVIDER=gemini (or GEMINI_API_KEY is set), use Gemini.
+      - Else return a deterministic, offline-friendly fallback summary.
 
     Parameters:
       - prompts: list[str] instructions (YAML-friendly)
@@ -181,22 +183,12 @@ def subagent(
     if os.getenv("LLM_ENABLED", "true").strip().lower() != "true":
         return _offline_fallback(reason="LLM is disabled (LLM_ENABLED!=true).")
 
-    # Offline fallback (no API key)
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return _offline_fallback(reason="LLM is not configured (missing GEMINI_API_KEY).")
-    # Optional fast-disable if you know your network blocks Gemini:
-    #   $env:LLM_ENABLED="false"
-
-    # Gemini path
-    try:
-        import google.generativeai as genai  # type: ignore
-    except Exception as e:
-        return _offline_fallback(reason=f"LLM deps missing ({e}).")
-
-    genai.configure(api_key=api_key)
-    model_name = model or os.getenv("LLM_MODEL", "gemini-1.5-flash")
-    m = genai.GenerativeModel(model_name)
+    # Provider selection: explicit env wins, otherwise auto-detect.
+    provider = (os.getenv("LLM_PROVIDER") or "").strip().lower()
+    has_openai = bool(os.getenv("OPENAI_API_KEY"))
+    has_gemini = bool(os.getenv("GEMINI_API_KEY"))
+    if not provider:
+        provider = "openai" if has_openai else ("gemini" if has_gemini else "")
 
     # Keep the prompt readable and structured.
     full_prompt = (
@@ -204,25 +196,81 @@ def subagent(
         f"INSTRUCTIONS:\n{prompt_text or '(none)'}\n\n"
         f"INPUT_DATA (JSON-ish):\n{payload}\n"
     )
+
     try:
-        # Best-effort timeout: run the call in a background thread and return fallback if it exceeds.
-        # This avoids long hangs on blocked networks (Windows-friendly; no signals).
-        import concurrent.futures
+        timeout_s = float(os.getenv("LLM_NETWORK_TIMEOUT_SECONDS", "15"))
+    except Exception:
+        timeout_s = 15.0
+
+    if provider == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return _offline_fallback(reason="LLM is not configured (missing OPENAI_API_KEY).")
+        try:
+            import httpx
+        except Exception as e:
+            return _offline_fallback(reason=f"LLM deps missing ({_format_exc(e)}).")
+
+        # OpenAI Chat Completions (simple/robust parsing)
+        model_name = model or os.getenv("OPENAI_MODEL", os.getenv("LLM_MODEL", "gpt-4o-mini"))
+        base_url = (os.getenv("OPENAI_BASE_URL") or "https://api.openai.com").rstrip("/")
+        url = f"{base_url}/v1/chat/completions"
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        body = {
+            "model": model_name,
+            "temperature": float(temperature),
+            "messages": [
+                {"role": "system", "content": "You are an expert debugging assistant."},
+                {"role": "user", "content": full_prompt},
+            ],
+        }
+        try:
+            with httpx.Client(timeout=float(timeout_s), headers=headers) as client:
+                resp = client.post(url, json=body)
+                resp.raise_for_status()
+                data = resp.json()
+            text = ""
+            try:
+                text = str((((data.get("choices") or [])[0] or {}).get("message") or {}).get("content") or "").strip()
+            except Exception:
+                text = ""
+            return (text + "\n") if text else "\n"
+        except Exception as e:
+            return _offline_fallback(reason=f"LLM call failed ({_format_exc(e)}).")
+
+    if provider == "gemini":
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            return _offline_fallback(reason="LLM is not configured (missing GEMINI_API_KEY).")
+        # Optional fast-disable if you know your network blocks Gemini:
+        #   $env:LLM_ENABLED="false"
+
+        # Gemini path
+        try:
+            import google.generativeai as genai  # type: ignore
+        except Exception as e:
+            return _offline_fallback(reason=f"LLM deps missing ({_format_exc(e)}).")
+
+        genai.configure(api_key=api_key)
+        model_name = model or os.getenv("LLM_MODEL", "gemini-1.5-flash")
+        m = genai.GenerativeModel(model_name)
 
         try:
-            timeout_s = float(os.getenv("LLM_NETWORK_TIMEOUT_SECONDS", "15"))
-        except Exception:
-            timeout_s = 15.0
+            # Best-effort timeout: run the call in a background thread and return fallback if it exceeds.
+            # This avoids long hangs on blocked networks (Windows-friendly; no signals).
+            import concurrent.futures
 
-        def _do_call() -> str:
-            resp = m.generate_content(full_prompt, generation_config={"temperature": float(temperature)})
-            return (getattr(resp, "text", None) or "").strip()
+            def _do_call() -> str:
+                resp = m.generate_content(full_prompt, generation_config={"temperature": float(temperature)})
+                return (getattr(resp, "text", None) or "").strip()
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(_do_call)
-            text = fut.result(timeout=timeout_s)
-            return (text.strip() + "\n") if text else "\n"
-    except Exception as e:
-        return _offline_fallback(reason=f"LLM call failed ({_format_exc(e)}).")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                fut = ex.submit(_do_call)
+                text = fut.result(timeout=float(timeout_s))
+                return (text.strip() + "\n") if text else "\n"
+        except Exception as e:
+            return _offline_fallback(reason=f"LLM call failed ({_format_exc(e)}).")
+
+    return _offline_fallback(reason="LLM is not configured (set OPENAI_API_KEY or GEMINI_API_KEY).")
 
 
