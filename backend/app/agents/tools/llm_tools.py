@@ -42,6 +42,19 @@ def subagent(
         issue = payload.get("issue") if isinstance(payload.get("issue"), dict) else {}
         similar = payload.get("similar") if isinstance(payload.get("similar"), dict) else {}
         results = similar.get("results") if isinstance(similar.get("results"), list) else []
+        external_refs = payload.get("external_refs") if isinstance(payload.get("external_refs"), dict) else {}
+        external_results = (
+            external_refs.get("results") if isinstance(external_refs.get("results"), list) else []
+        )
+        external_error = external_refs.get("error") if isinstance(external_refs, dict) else None
+        try:
+            top_sim = float(payload.get("local_top_similarity", 0.0))
+        except Exception:
+            top_sim = 0.0
+        try:
+            min_score = float(payload.get("min_local_score", 0.0))
+        except Exception:
+            min_score = 0.0
 
         debug_prompts = os.getenv("LLM_SUBAGENT_DEBUG", "false").strip().lower() == "true"
 
@@ -81,6 +94,16 @@ def subagent(
         lines: List[str] = []
         # Keep this output short and action-oriented (like ADAG).
         lines.append(f"Analysis: skipped LLM ({reason})")
+        lines.append(
+            f"Sources: internal JIRA DB embeddings (top_score={top_sim:.3f}, threshold={min_score:.2f})"
+        )
+        if external_refs:
+            if external_results:
+                lines.append(f"Sources: external web search used (hits={len(external_results)})")
+            elif external_error:
+                lines.append(f"Sources: external web search attempted but failed ({external_error})")
+            else:
+                lines.append("Sources: external web search attempted but returned 0 results")
         if issue:
             lines.append(f"Target: {issue.get('issue_key')} — {(issue.get('summary') or '').strip()}")
             comps = issue.get("components") if isinstance(issue.get("components"), list) else []
@@ -108,6 +131,15 @@ def subagent(
             lines.append("- Confirm environment details (OS/build/version, device, codec/feature flags, network/proxy).")
             lines.append("- Search logs for explicit errors/warnings; attach the exact first failure.")
             lines.append("- Compare against the closest historical match; diff configuration and recent changes.")
+
+        if external_results:
+            lines.append("")
+            lines.append("External references (titles):")
+            for i, r in enumerate(external_results[:10], start=1):
+                title = (r or {}).get("title") if isinstance(r, dict) else ""
+                title = (str(title or "")).strip()
+                if title:
+                    lines.append(f"- {title}")
 
         # Optional debug: print the original instructions when explicitly requested.
         if debug_prompts and prompt_text:

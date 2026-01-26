@@ -299,9 +299,33 @@ def main() -> int:
                     external_refs = {"results": [], "error": f"{type(e).__name__}: {str(e).strip()}" if str(e).strip() else type(e).__name__}
 
             trace.event("tool_call", {"tool": "llm.subagent", "mode": "root_cause_summary"})
+
+            # Deterministic retrieval note (so output is clear even when LLM is disabled/fails).
+            ext_results_count = 0
+            ext_error = None
+            if isinstance(external_refs, dict):
+                if isinstance(external_refs.get("results"), list):
+                    ext_results_count = len(external_refs.get("results") or [])
+                ext_error = external_refs.get("error")
+            used_external = bool(args.external_knowledge) and top_sim < float(args.min_local_score)
+            retrieval_header_lines = [
+                f"Sources: internal JIRA DB embeddings (top_score={top_sim:.3f}, threshold={float(args.min_local_score):.2f})",
+            ]
+            if used_external:
+                if ext_results_count > 0:
+                    retrieval_header_lines.append(f"Sources: external web search used (hits={ext_results_count})")
+                elif ext_error:
+                    retrieval_header_lines.append(f"Sources: external web search attempted but failed ({ext_error})")
+                else:
+                    retrieval_header_lines.append("Sources: external web search attempted but returned 0 results")
+            else:
+                retrieval_header_lines.append("Sources: external web search skipped (local similarity is strong enough or not enabled)")
+            retrieval_header = "\n".join(retrieval_header_lines).rstrip() + "\n\n"
+
             analysis = llm_tools.subagent(
                 ctx=ctx,
                 prompts=[
+                    "Start your output with the provided Sources lines (do not omit them).",
                     "You are an expert debugging assistant. Produce a root-cause oriented summary for the target issue.",
                     f"Target issue key: {issue_key}. Use the target issue fields and the similar issues list as evidence. Do not invent details.",
                     "If logs/signatures are provided, treat them as the primary evidence for what failed and why.",
@@ -323,8 +347,12 @@ def main() -> int:
                     "external_refs": external_refs if external_refs else None,
                     "local_top_similarity": top_sim,
                     "min_local_score": float(args.min_local_score),
+                    "sources_header": retrieval_header.strip(),
                 },
             )
+            # Ensure the note is present even if the LLM ignores instructions.
+            if isinstance(analysis, str) and analysis.strip() and not analysis.lstrip().startswith("Sources:"):
+                analysis = retrieval_header + analysis.lstrip()
         except Exception as e:
             # Keep the CLI resilient; report is still useful even if analysis fails.
             trace.event("analysis_error", {"error": str(e)})
