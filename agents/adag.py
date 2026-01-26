@@ -107,6 +107,16 @@ def _extract_jira_key(prompt: str) -> str:
     return m.group(0)
 
 
+def _read_text_file(path: str) -> str:
+    p = Path(path).expanduser()
+    if not p.is_absolute():
+        p = (Path.cwd() / p).resolve()
+    if not p.exists():
+        raise SystemExit(f"--logs-file not found: {p}")
+    # Be robust to encoding issues; logs often contain mixed encodings.
+    return p.read_text(encoding="utf-8", errors="replace")
+
+
 def _run_fetch_and_summarize(*, issue_key: str, limit: int, trace: TraceWriter) -> str:
     """
     Deterministic "agent" that produces a clean summary.
@@ -150,6 +160,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="ADAG-style prompt runner (offline-friendly).")
     parser.add_argument("--prompt", required=True, help='Example: "Fetch and summarize: SYSCROS-123559"')
     parser.add_argument("--save_trace", action="store_true", help="Write a markdown trace under agents/traces/")
+    parser.add_argument(
+        "--logs-file",
+        default=None,
+        help="Optional path to logs.txt/.log. We extract error signatures for similarity search + root-cause summary.",
+    )
     parser.add_argument("--limit", type=int, default=5, help="How many similar issues to show")
     parser.add_argument(
         "--no-analysis",
@@ -163,6 +178,31 @@ def main() -> int:
     trace = TraceWriter(enabled=bool(args.save_trace), path=trace_path if args.save_trace else None)
 
     issue_key = _extract_jira_key(args.prompt)
+    logs_text = ""
+    log_signals: Dict[str, Any] = {}
+    archived_logs_path: Optional[Path] = None
+    if args.logs_file:
+        logs_text = _read_text_file(str(args.logs_file))
+        try:
+            from app.agents.tools import log_tools
+
+            log_signals = log_tools.extract_error_signals(ctx={"inputs": {}, "steps": {}}, text=logs_text)
+        except Exception as e:
+            log_signals = {"signals": [], "fingerprint": "", "query_text": "", "stats": {}, "error": str(e)}
+
+        # Archive logs next to the trace (ignored by .gitignore) for local future reference
+        if trace.enabled:
+            archived_logs_path = repo_root / "agents" / "traces" / f"{run_id}.logs.txt"
+            try:
+                archived_logs_path.parent.mkdir(parents=True, exist_ok=True)
+                # Avoid gigantic trace artifacts: keep up to 2MB from the end (typically contains the failure).
+                max_bytes = 2_000_000
+                data = logs_text.encode("utf-8", errors="replace")
+                if len(data) > max_bytes:
+                    data = data[-max_bytes:]
+                archived_logs_path.write_bytes(data)
+            except Exception:
+                archived_logs_path = None
 
     trace.event(
         "run_start",
@@ -172,6 +212,8 @@ def main() -> int:
             "prompt": args.prompt,
             "issue_key": issue_key,
             "limit": int(args.limit),
+            "logs_file": str(args.logs_file) if args.logs_file else None,
+            "log_fingerprint": (log_signals or {}).get("fingerprint") if args.logs_file else None,
             "env": {
                 "EMBEDDING_PROVIDER": os.getenv("EMBEDDING_PROVIDER"),
                 "USE_MOCK_EMBEDDING": os.getenv("USE_MOCK_EMBEDDING"),
@@ -193,9 +235,16 @@ def main() -> int:
             # (We avoid refactoring too much here; correctness > DRY for this small CLI.)
             ctx: Dict[str, Any] = {"inputs": {"issue_key": issue_key, "limit": int(args.limit)}, "steps": {}}
             issue = jira_tools.get_issue_from_db(ctx=ctx, issue_key=issue_key)
+
+            query_text = str(issue.get("embedding_text") or "")
+            if args.logs_file and isinstance(log_signals, dict):
+                sig_q = str(log_signals.get("query_text") or "").strip()
+                if sig_q:
+                    query_text = (query_text + "\n\nLOG_ERROR_SIGNATURES:\n" + sig_q).strip()
+
             similar = jira_tools.search_similar_jira(
                 ctx=ctx,
-                query=str(issue.get("embedding_text") or ""),
+                query=query_text,
                 limit=int(args.limit),
                 exclude_issue_keys=[issue_key],
             )
@@ -205,13 +254,21 @@ def main() -> int:
                 prompts=[
                     "You are an expert debugging assistant. Produce a root-cause oriented summary for the target issue.",
                     f"Target issue key: {issue_key}. Use the target issue fields and the similar issues list as evidence. Do not invent details.",
+                    "If logs/signatures are provided, treat them as the primary evidence for what failed and why.",
                     "Output (concise):",
                     "Probable root cause (ranked hypotheses + confidence 0-100)",
                     "Evidence (quotes/snippets from issue/comments)",
+                    "Log evidence (specific error lines / exception names / error codes)",
                     "Next debugging steps (5-8)",
                     "Suggested fix/mitigation",
                 ],
-                input_data={"issue": issue, "similar": similar},
+                input_data={
+                    "issue": issue,
+                    "similar": similar,
+                    "log_signals": log_signals if args.logs_file else None,
+                    # Tail only (avoid gigantic prompts even if LLM is enabled)
+                    "logs_tail": "\n".join((logs_text or "").splitlines()[-400:]).rstrip() + "\n" if args.logs_file else None,
+                },
             )
         except Exception as e:
             # Keep the CLI resilient; report is still useful even if analysis fails.
@@ -228,6 +285,8 @@ def main() -> int:
         print(analysis, end="" if analysis.endswith("\n") else "\n")
     if trace.enabled and trace.path:
         print(f"\n[trace] {trace.path}\n")
+        if archived_logs_path:
+            print(f"[logs]  {archived_logs_path}\n")
     return 0
 
 

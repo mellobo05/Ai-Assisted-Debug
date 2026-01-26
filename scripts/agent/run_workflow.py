@@ -45,6 +45,11 @@ def main() -> int:
     )
     parser.add_argument("--query", default="", help="Search query text")
     parser.add_argument("--limit", type=int, default=5, help="Top-k results")
+    parser.add_argument(
+        "--logs-file",
+        default=None,
+        help="Optional logs file path (workflow can reference ${logs_file}).",
+    )
 
     parser.add_argument("--issue-key", action="append", dest="issue_keys", help="JIRA issue key (repeatable)")
     parser.add_argument("--jql", default=None, help="JQL to sync issues (optional)")
@@ -85,6 +90,7 @@ def main() -> int:
     inputs = {
         "query": args.query,
         "limit": args.limit,
+        "logs_file": args.logs_file,
         "issue_keys": args.issue_keys,
         "jql": args.jql,
         "max_results": args.max_results,

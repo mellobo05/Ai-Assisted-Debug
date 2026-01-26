@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict
 
 from . import jira_tools
 from . import llm_tools
+from . import log_tools
 
 
 ToolFn = Callable[..., Any]
@@ -30,5 +31,8 @@ def build_default_tool_registry() -> Dict[str, ToolFn]:
         "report.render_reembed": jira_tools.render_reembed_report,
         # Optional LLM "subagent" analysis step (falls back gracefully if no GEMINI_API_KEY)
         "llm.subagent": llm_tools.subagent,
+        # Logs -> compact signatures (for similarity search + analysis)
+        "log.load": log_tools.load_logs,
+        "log.extract_error_signals": log_tools.extract_error_signals,
     }
 

@@ -1,0 +1,45 @@
+workflow:
+  name: "JIRA Similar Issues From Logs"
+  description: "Load a local logs file, extract error signatures, and find similar JIRA issues from the DB."
+
+  # Usage:
+  #   python scripts/agent/run_workflow.py --workflow-file scripts/agent/workflows/jira_similar_from_logs.yaml --workflow-params logs_file="C:\\path\\to\\logs.txt" max_results=10
+  #
+  # Notes:
+  # - This is offline-friendly (DB-only). It does NOT sync from live JIRA.
+  # - You can optionally add an llm.subagent step after the report.
+
+  steps:
+    - step: "Load logs"
+      action: "log.load"
+      parameters:
+        path: "${logs_file}"
+      options:
+        save_as: "logs"
+        skip_in_output: true
+
+    - step: "Extract error signatures"
+      action: "log.extract_error_signals"
+      parameters: {}
+      options:
+        input: "steps.logs"
+        save_as: "log_signals"
+        skip_in_output: true
+
+    - step: "Search similar JIRA issues"
+      action: "rag.search_similar_jira"
+      parameters:
+        query: "${steps.log_signals.query_text}"
+        limit: "${max_results}"
+      options:
+        save_as: "search"
+        skip_in_output: true
+
+    - step: "Render report"
+      action: "report.render_similar_jira"
+      parameters:
+        max_items: "${max_results}"
+      options:
+        input: "steps.search"
+        save_as: "report"
+
