@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict
 from . import jira_tools
 from . import llm_tools
 from . import log_tools
+from . import external_knowledge_tools
 
 
 ToolFn = Callable[..., Any]
@@ -34,5 +35,7 @@ def build_default_tool_registry() -> Dict[str, ToolFn]:
         # Logs -> compact signatures (for similarity search + analysis)
         "log.load": log_tools.load_logs,
         "log.extract_error_signals": log_tools.extract_error_signals,
+        # External knowledge (optional; may be blocked on corporate networks)
+        "web.search": external_knowledge_tools.web_search,
     }
 

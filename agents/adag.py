@@ -165,6 +165,23 @@ def main() -> int:
         default=None,
         help="Optional path to logs.txt/.log. We extract error signatures for similarity search + root-cause summary.",
     )
+    parser.add_argument(
+        "--external-knowledge",
+        action="store_true",
+        help="If local similarity is weak, fetch external references using sanitized error signatures (privacy-safe).",
+    )
+    parser.add_argument(
+        "--min-local-score",
+        type=float,
+        default=0.62,
+        help="Minimum top similarity score (0-1) to accept local DB results before using external fallback.",
+    )
+    parser.add_argument(
+        "--external-max-results",
+        type=int,
+        default=5,
+        help="Max external references to fetch when fallback triggers.",
+    )
     parser.add_argument("--limit", type=int, default=5, help="How many similar issues to show")
     parser.add_argument(
         "--no-analysis",
@@ -248,6 +265,39 @@ def main() -> int:
                 limit=int(args.limit),
                 exclude_issue_keys=[issue_key],
             )
+
+            external_refs: Dict[str, Any] = {}
+            top_sim = 0.0
+            try:
+                results = similar.get("results") if isinstance(similar, dict) else None
+                if isinstance(results, list) and len(results) > 0:
+                    top_sim = float((results[0] or {}).get("similarity", 0.0))
+            except Exception:
+                top_sim = 0.0
+
+            # Optional external knowledge fallback (opt-in).
+            if bool(args.external_knowledge) and top_sim < float(args.min_local_score):
+                try:
+                    from app.agents.tools import external_knowledge_tools
+
+                    sig_q = ""
+                    if args.logs_file and isinstance(log_signals, dict):
+                        sig_q = str(log_signals.get("query_text") or "").strip()
+                    if not sig_q:
+                        # If no logs, use a short slice of the issue text as a fallback query.
+                        sig_q = " ".join(str(issue.get("embedding_text") or "").split())[:300]
+                    trace.event(
+                        "tool_call",
+                        {"tool": "web.search", "max_results": int(args.external_max_results), "top_sim": top_sim},
+                    )
+                    external_refs = external_knowledge_tools.web_search(
+                        ctx=ctx,
+                        query=sig_q,
+                        max_results=int(args.external_max_results),
+                    )
+                except Exception as e:
+                    external_refs = {"results": [], "error": f"{type(e).__name__}: {str(e).strip()}" if str(e).strip() else type(e).__name__}
+
             trace.event("tool_call", {"tool": "llm.subagent", "mode": "root_cause_summary"})
             analysis = llm_tools.subagent(
                 ctx=ctx,
@@ -255,10 +305,12 @@ def main() -> int:
                     "You are an expert debugging assistant. Produce a root-cause oriented summary for the target issue.",
                     f"Target issue key: {issue_key}. Use the target issue fields and the similar issues list as evidence. Do not invent details.",
                     "If logs/signatures are provided, treat them as the primary evidence for what failed and why.",
+                    "If external references are provided, use them only as supporting context and clearly label them as external (not confirmed).",
                     "Output (concise):",
                     "Probable root cause (ranked hypotheses + confidence 0-100)",
                     "Evidence (quotes/snippets from issue/comments)",
                     "Log evidence (specific error lines / exception names / error codes)",
+                    "External references (short bullet list; include titles only)",
                     "Next debugging steps (5-8)",
                     "Suggested fix/mitigation",
                 ],
@@ -268,6 +320,9 @@ def main() -> int:
                     "log_signals": log_signals if args.logs_file else None,
                     # Tail only (avoid gigantic prompts even if LLM is enabled)
                     "logs_tail": "\n".join((logs_text or "").splitlines()[-400:]).rstrip() + "\n" if args.logs_file else None,
+                    "external_refs": external_refs if external_refs else None,
+                    "local_top_similarity": top_sim,
+                    "min_local_score": float(args.min_local_score),
                 },
             )
         except Exception as e:
