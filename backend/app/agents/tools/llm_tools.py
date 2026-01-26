@@ -26,6 +26,18 @@ def subagent(
     prompt_text = "\n\n".join([str(p) for p in (prompts or []) if str(p).strip()]).strip()
     payload = input_data if isinstance(input_data, dict) else {}
 
+    def _format_exc(e: BaseException) -> str:
+        """
+        Make failures understandable even when the exception message is empty
+        (common for some TimeoutError/CancelledError variants).
+        """
+        try:
+            msg = str(e).strip()
+        except Exception:
+            msg = ""
+        name = type(e).__name__
+        return f"{name}: {msg}" if msg else name
+
     def _offline_fallback(*, reason: str) -> str:
         issue = payload.get("issue") if isinstance(payload.get("issue"), dict) else {}
         similar = payload.get("similar") if isinstance(payload.get("similar"), dict) else {}
@@ -151,6 +163,6 @@ def subagent(
             text = fut.result(timeout=timeout_s)
             return (text.strip() + "\n") if text else "\n"
     except Exception as e:
-        return _offline_fallback(reason=f"LLM call failed ({e}).")
+        return _offline_fallback(reason=f"LLM call failed ({_format_exc(e)}).")
 
 
