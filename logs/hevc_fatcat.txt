@@ -1,0 +1,934 @@
+
+11-06 07:32:46.294 16637 16699 I CCodec  : Created component [c2.cros-codecs.vaapi.hevc.decoder] for [c2.cros-codecs.vaapi.hevc.decoder]
+11-06 07:32:46.295 16637 16699 D CCodecConfig: read media type: video/hevc
+11-06 07:32:46.296 16637 16699 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+11-06 07:32:46.296 16637 16699 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+11-06 07:32:46.296 16637 16699 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+11-06 07:32:46.296 16637 16699 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+11-06 07:32:46.297 16637 16699 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+11-06 07:32:46.297 16637 16699 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+11-06 07:32:46.297 16637 16699 D CCodecConfig: ignoring local param raw.size (0xd2001800) as it is already supported
+11-06 07:32:46.297 16637 16699 D CCodecConfig: ignoring local param default.color (0x5200180b) as it is already supported
+11-06 07:32:46.297 16637 16699 D ReflectedParamUpdater: ignored struct field raw.hdr-static-info.mastering
+11-06 07:32:46.298 16637 16699 I CCodecConfig: query failed after returning 13 values (BAD_INDEX)
+11-06 07:32:46.299 16637 16699 D CCodecConfig: c2 config diff is Dict {
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 algo.secure-mode.value = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 coded.pl.level = 24584
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 coded.pl.profile = 24576
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 coded.vui.color.matrix = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 coded.vui.color.primaries = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 coded.vui.color.range = 2
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 coded.vui.color.transfer = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 default.color.matrix = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 default.color.primaries = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 default.color.range = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 default.color.transfer = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 2097152
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 input.delay.value = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   string input.media-type.value = "video/hevc"
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 output.delay.value = 4
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   string output.media-type.value = "video/raw"
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.color.matrix = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.color.primaries = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.color.range = 2
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.color.transfer = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.max-size.height = 240
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.max-size.width = 320
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.pixel-format.value = 35
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::i32 raw.rotation.flip = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::i32 raw.rotation.value = 0
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.sar.height = 1
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.sar.width = 1
+11-06 07:32:46.299 16637 16699 D CCodecConfig:   c2::u32 raw.size.height = 24
+11-06 07:32:46.299 16637 16699 W ColorUtils: expected specified color aspects (2:0:0:0)
+11-06 07:32:46.300 16637 16652 I MediaCodec: media_quality service unavailable, skipping updatePictureProfile
+11-06 07:32:46.301 16637 16699 D CCodec  : [c2.cros-codecs.vaapi.hevc.decoder] buffers are bound to CCodec for this session
+11-06 07:32:46.301 16637 16699 D CCodecConfig: no c2 equivalents for color-format
+11-06 07:32:46.301 16637 16699 D CCodecConfig: no c2 equivalents for track-id
+11-06 07:32:46.301 16637 16699 D CCodecConfig: no c2 equivalents for frame-count
+11-06 07:32:46.301 16637 16699 D CCodecConfig: no c2 equivalents for language
+11-06 07:32:46.301 16637 16699 D CCodecConfig: no c2 equivalents for display-width
+11-06 07:32:46.301 16637 16699 D CCodecConfig: no c2 equivalents for durationUs
+11-06 07:32:46.301 16637 16699 D CCodecConfig: no c2 equivalents for display-height
+11-06 07:32:46.301 16637 16699 D CCodecConfig: no c2 equivalents for flags
+11-06 07:32:46.302 16637 16699 D CCodecConfig: c2 config diff is   c2::u32 coded.pl.level = 24576
+11-06 07:32:46.302 16637 16699 D CCodecConfig:   c2::u32 raw.size.height = 720
+11-06 07:32:46.302 16637 16699 D CCodecConfig:   c2::u32 raw.size.width = 1280
+11-06 07:32:46.302 16637 16699 W ColorUtils: expected specified color aspects (2:0:0:0)
+11-06 07:32:46.302 16637 16699 D CCodec  : client requested max input size 62844, which is smaller than what component recommended (2097152); overriding with component recommendation.
+11-06 07:32:46.302 16637 16699 W CCodec  : This behavior is subject to change. It is recommended that app developers double check whether the requested max input size is in reasonable range.
+11-06 07:32:46.302 16637 16699 D CCodec  : encoding statistics level = 0
+11-06 07:32:46.302 16637 16699 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t feature-secure-playback = 0
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t height = 720
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t level = 1
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t max-input-size = 2097152
+11-06 07:32:46.302 16637 16699 D CCodec  :   string mime = "video/hevc"
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t profile = 1
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t width = 1280
+11-06 07:32:46.302 16637 16699 D CCodec  :   Rect crop(0, 0, 1279, 719)
+11-06 07:32:46.302 16637 16699 D CCodec  : }
+11-06 07:32:46.302 16637 16699 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t android._color-format = 2135033992
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t android._video-scaling = 1
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t rotation-degrees = 0
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t color-standard = 0
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t color-range = 2
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t color-transfer = 0
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t sar-height = 1
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t sar-width = 1
+11-06 07:32:46.302 16637 16699 D CCodec  :   Rect crop(0, 0, 1279, 719)
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t width = 1280
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t feature-secure-playback = 0
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t height = 720
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t max-height = 240
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t max-width = 320
+11-06 07:32:46.302 16637 16699 D CCodec  :   string mime = "video/raw"
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t android._dataspace = 268435456
+11-06 07:32:46.302 16637 16699 D CCodec  :   int32_t color-format = 19
+11-06 07:32:46.302 16637 16699 D CCodec  : }
+11-06 07:32:46.302 16637 16699 I CCodecConfig: query failed after returning 13 values (BAD_INDEX)
+11-06 07:32:46.303 16637 16699 D CCodecConfig: c2 config diff is   c2::u32 raw.max-size.height = 720
+11-06 07:32:46.303 16637 16699 D CCodecConfig:   c2::u32 raw.max-size.width = 1280
+11-06 07:32:46.303 16637 16699 W ColorUtils: expected specified color aspects (2:0:0:0)
+11-06 07:32:46.303 16637 16699 E transcoding.cts: Failed to query component interface for required system resources: 6
+11-06 07:32:46.303 14370 16695 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::start()
+11-06 07:32:46.304 16637 16699 D C2Store : Using DMABUF Heaps
+11-06 07:32:46.304 14370 16701 E libva   : Open file /tmp/libva_trace.txt failed (Permission denied)
+11-06 07:32:46.304 14370 16701 I libva   : VA-API version 1.22.0
+11-06 07:32:46.304 14370 16701 I libva   : Trying to open /vendor/lib64/iHD_drv_video.so
+11-06 07:32:46.304 14370 16701 I libva   : Found init function __vaDriverInit_1_22
+11-06 07:32:46.305 16637 16699 D CCodecBufferChannel: [c2.cros-codecs.vaapi.hevc.decoder#316] Created input block pool with allocatorID 16 => poolID 17 - OK (0)
+11-06 07:32:46.305 16637 16699 D CCodecBufferChannel: [c2.cros-codecs.vaapi.hevc.decoder#316] Configured output block pool ids 1 => OK
+11-06 07:32:46.305 16637 16699 D CCodecBufferChannel: [c2.cros-codecs.vaapi.hevc.decoder#316] Configured output usage [0x1]
+11-06 07:32:46.314   806  5050 W ResourceManagerServiceUtils: Ignoring request to add new resource entry with value <= 0
+11-06 07:32:46.316 14370 16670 W android.hardware.media.c2-cros-codecs-service: AIBinder_linkToDeath is being called with a non-null cookie and no onUnlink callback set. Use AIBinder_DeathRecipient_setOnUnlinked to manage the lifetime of the cookie. This will become an abort.
+11-06 07:32:46.316 16637 16698 W transcoding.cts: AIBinder_linkToDeath is being called with a non-null cookie and no onUnlink callback set. Use AIBinder_DeathRecipient_setOnUnlinked to manage the lifetime of the cookie. This will become an abort.
+11-06 07:32:46.317 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.317 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 161, cros_codecs_decode_job.timestamp = 0, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = true, work.get_timestamp() = 0, work.get_frame_index()= 0
+11-06 07:32:46.317 16637 16645 D CCodecBufferChannel: [c2.cros-codecs.vaapi.hevc.decoder#316] Ignoring stale input buffer done callback: last flush index = 0, frameIndex = 0
+11-06 07:32:46.317 14370 16701 I libva   : va_openDriver() returns 0
+11-06 07:32:46.328 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU VpsNut, length is 23
+11-06 07:32:46.328 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU VpsNut, length is 23
+11-06 07:32:46.328 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.328 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Draining the decoder
+11-06 07:32:46.328 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Draining the DPB.
+11-06 07:32:46.328 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Adding POCs [] to the ready queue while draining
+11-06 07:32:46.329 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Clearing the DPB
+11-06 07:32:46.333 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.333 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 62824, cros_codecs_decode_job.timestamp = 1, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 0, work.get_frame_index()= 1
+11-06 07:32:46.333 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 1)
+11-06 07:32:46.335 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.335 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 3426, cros_codecs_decode_job.timestamp = 2, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 33333, work.get_frame_index()= 2
+11-06 07:32:46.335 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 2)
+11-06 07:32:46.336 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Init called
+11-06 07:32:46.338 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.338 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 3213, cros_codecs_decode_job.timestamp = 3, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 66665, work.get_frame_index()= 3
+11-06 07:32:46.338 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 3)
+11-06 07:32:46.339 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.339 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 3075, cros_codecs_decode_job.timestamp = 4, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 99999, work.get_frame_index()= 4
+11-06 07:32:46.339 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 0)
+11-06 07:32:46.341 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.341 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 3907, cros_codecs_decode_job.timestamp = 5, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 133331, work.get_frame_index()= 5
+11-06 07:32:46.341 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 1)
+11-06 07:32:46.343 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.343 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 5935, cros_codecs_decode_job.timestamp = 6, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 166665, work.get_frame_index()= 6
+11-06 07:32:46.343 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 2)
+11-06 07:32:46.345 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Draining the decoder
+11-06 07:32:46.345 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Draining the DPB.
+11-06 07:32:46.345 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Adding POCs [] to the ready queue while draining
+11-06 07:32:46.345 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.346 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Clearing the DPB
+11-06 07:32:46.346 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 7693, cros_codecs_decode_job.timestamp = 7, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 199998, work.get_frame_index()= 7
+11-06 07:32:46.346 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 3)
+11-06 07:32:46.346 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Got a StreamInfo hint from cros-codecs; stream_info.format = NV12, stream_info.coded_resolution = Resolution { width: 1280, height: 768 }, stream_info.display_rect = Rect { x: 0, y: 0, width: 1280, height: 720 }, stream_info.min_num_frames = 11, stream_info.range = Limited, stream_info.primaries = Unspecified stream_info.transfer = Unspecified stream_info.matrix = Unspecified stream_info.linear = true
+11-06 07:32:46.347 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 225, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 226, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU SpsNut, length is 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU SpsNut, length is 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU PpsNut, length is 10
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed PPS(0), NAL size was 10
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU PpsNut, length is 10
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed PPS(0), NAL size was 10
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU VpsNut, length is 23
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU SpsNut, length is 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU PpsNut, length is 10
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed PPS(0), NAL size was 10
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU VpsNut, length is 23
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU SpsNut, length is 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed SPS(0), resolution: (1280, 736): NAL size was 35
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU PpsNut, length is 10
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed PPS(0), NAL size was 10
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU IdrWRadl, length is 41540
+11-06 07:32:46.348 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice IdrWRadl, NAL size was 41540
+11-06 07:32:46.349 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.349 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 4207, cros_codecs_decode_job.timestamp = 8, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 233330, work.get_frame_index()= 8
+11-06 07:32:46.349 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 0)
+11-06 07:32:46.349 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 227, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.349 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: IRAP frame: type=IdrWRadl, timestamp=1, NoRaslOutputFlag=true
+11-06 07:32:46.349 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 0
+11-06 07:32:46.349 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Draining the decoder
+11-06 07:32:46.350 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Draining the DPB.
+11-06 07:32:46.350 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Adding POCs [] to the ready queue while draining
+11-06 07:32:46.350 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Clearing the DPB
+11-06 07:32:46.350 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU IdrWRadl, length is 21115
+11-06 07:32:46.350 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice IdrWRadl, NAL size was 21115
+11-06 07:32:46.350 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2413
+11-06 07:32:46.350 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2413
+11-06 07:32:46.350 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 0
+11-06 07:32:46.350 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.350 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.350 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.350 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.350 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.351 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.351 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 4780, cros_codecs_decode_job.timestamp = 9, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 266664, work.get_frame_index()= 9
+11-06 07:32:46.351 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 1)
+11-06 07:32:46.353 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.353 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.353 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 1
+11-06 07:32:46.353 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 0 
+11-06 07:32:46.353 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 1
+11-06 07:32:46.353 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 0, the DPB length is 0
+11-06 07:32:46.353 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 0 to ShortTerm
+11-06 07:32:46.353 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 0 from the dpb
+11-06 07:32:46.353 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 0: timestamp1
+11-06 07:32:46.353 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [0] to the ready queue after decoding
+11-06 07:32:46.353 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 0
+11-06 07:32:46.353 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.353 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 9123, cros_codecs_decode_job.timestamp = 10, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 299996, work.get_frame_index()= 10
+11-06 07:32:46.353 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 2)
+11-06 07:32:46.354 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 228, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.354 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 1
+11-06 07:32:46.354 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 0, found position Some(0)
+11-06 07:32:46.354 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.354 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 0: true
+11-06 07:32:46.354 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.354 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1004
+11-06 07:32:46.355 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1004
+11-06 07:32:46.355 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2269
+11-06 07:32:46.355 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2269
+11-06 07:32:46.355 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 1
+11-06 07:32:46.355 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.355 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.355 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.355 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.355 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.356 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.356 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.356 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 2
+11-06 07:32:46.356 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 1 
+11-06 07:32:46.356 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 2
+11-06 07:32:46.356 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 1, the DPB length is 1
+11-06 07:32:46.356 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 1 to ShortTerm
+11-06 07:32:46.356 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 1 from the dpb
+11-06 07:32:46.356 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 1: timestamp2
+11-06 07:32:46.356 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [1] to the ready queue after decoding
+11-06 07:32:46.356 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 1
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 229, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 2
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 1, found position Some(1)
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 0 to None
+11-06 07:32:46.357 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.357 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 0: false
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 1: true
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 935
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 935
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2134
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2134
+11-06 07:32:46.357 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 2
+11-06 07:32:46.357 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.358 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.358 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.358 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.358 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.358 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.359 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.359 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 3
+11-06 07:32:46.359 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 2 
+11-06 07:32:46.359 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 3
+11-06 07:32:46.359 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 2, the DPB length is 1
+11-06 07:32:46.359 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 2 to ShortTerm
+11-06 07:32:46.359 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 2 from the dpb
+11-06 07:32:46.359 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 2: timestamp3
+11-06 07:32:46.359 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [2] to the ready queue after decoding
+11-06 07:32:46.359 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 2
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 230, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 3
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 2, found position Some(1)
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 1 to None
+11-06 07:32:46.360 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.360 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 1: false
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 2: true
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.360 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 932
+11-06 07:32:46.361 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 932
+11-06 07:32:46.361 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2850
+11-06 07:32:46.361 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2850
+11-06 07:32:46.361 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 3
+11-06 07:32:46.361 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.361 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.361 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.361 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.361 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.362 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.362 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.362 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 4
+11-06 07:32:46.362 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 3 
+11-06 07:32:46.362 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 4
+11-06 07:32:46.362 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 3, the DPB length is 1
+11-06 07:32:46.362 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 3 to ShortTerm
+11-06 07:32:46.362 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 3 from the dpb
+11-06 07:32:46.362 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 3: timestamp4
+11-06 07:32:46.362 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [3] to the ready queue after decoding
+11-06 07:32:46.362 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 3
+11-06 07:32:46.363 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 231, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 4
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 3, found position Some(1)
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 2 to None
+11-06 07:32:46.364 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.364 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 2: false
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 3: true
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1048
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1048
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 4193
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 4193
+11-06 07:32:46.364 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 4
+11-06 07:32:46.364 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.364 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.364 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.365 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.365 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.365 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.365 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.365 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 5
+11-06 07:32:46.365 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 4 
+11-06 07:32:46.365 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 5
+11-06 07:32:46.365 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 4, the DPB length is 1
+11-06 07:32:46.365 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 4 to ShortTerm
+11-06 07:32:46.365 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 4 from the dpb
+11-06 07:32:46.365 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 4: timestamp5
+11-06 07:32:46.366 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [4] to the ready queue after decoding
+11-06 07:32:46.366 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 4
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 232, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 5
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 4, found position Some(1)
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 3 to None
+11-06 07:32:46.367 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.367 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 3: false
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 4: true
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1733
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1733
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 5361
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 5361
+11-06 07:32:46.367 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 5
+11-06 07:32:46.367 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.367 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.367 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.367 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.367 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.368 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.368 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.368 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 6
+11-06 07:32:46.368 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 5 
+11-06 07:32:46.368 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 6
+11-06 07:32:46.368 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 5, the DPB length is 1
+11-06 07:32:46.368 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 5 to ShortTerm
+11-06 07:32:46.368 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 5 from the dpb
+11-06 07:32:46.368 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 5: timestamp6
+11-06 07:32:46.368 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [5] to the ready queue after decoding
+11-06 07:32:46.369 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 5
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 233, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 6
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 5, found position Some(1)
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 4 to None
+11-06 07:32:46.370 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.370 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 4: false
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 5: true
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2323
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2323
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2998
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2998
+11-06 07:32:46.370 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 6
+11-06 07:32:46.370 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.370 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.370 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.370 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.370 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.371 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.371 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.371 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 7
+11-06 07:32:46.371 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 6 
+11-06 07:32:46.371 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 7
+11-06 07:32:46.371 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 6, the DPB length is 1
+11-06 07:32:46.371 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 6 to ShortTerm
+11-06 07:32:46.372 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 6 from the dpb
+11-06 07:32:46.372 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 6: timestamp7
+11-06 07:32:46.372 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [6] to the ready queue after decoding
+11-06 07:32:46.372 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 6
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 234, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 7
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 6, found position Some(1)
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 5 to None
+11-06 07:32:46.373 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.373 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 5: false
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 6: true
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1200
+11-06 07:32:46.373 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1200
+11-06 07:32:46.374 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 3479
+11-06 07:32:46.374 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 3479
+11-06 07:32:46.374 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 7
+11-06 07:32:46.374 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.374 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.374 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.374 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.374 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.375 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.375 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.375 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 8
+11-06 07:32:46.375 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 7 
+11-06 07:32:46.375 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 8
+11-06 07:32:46.375 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 7, the DPB length is 1
+11-06 07:32:46.375 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 7 to ShortTerm
+11-06 07:32:46.375 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 7 from the dpb
+11-06 07:32:46.375 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 7: timestamp8
+11-06 07:32:46.375 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [7] to the ready queue after decoding
+11-06 07:32:46.375 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 7
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 235, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 8
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 7, found position Some(1)
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 6 to None
+11-06 07:32:46.376 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.376 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 6: false
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 7: true
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.376 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1292
+11-06 07:32:46.377 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1292
+11-06 07:32:46.377 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 6599
+11-06 07:32:46.377 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 6599
+11-06 07:32:46.377 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 8
+11-06 07:32:46.377 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.377 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.377 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.377 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.377 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.378 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.378 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.378 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 9
+11-06 07:32:46.378 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 8 
+11-06 07:32:46.378 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 9
+11-06 07:32:46.378 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 8, the DPB length is 1
+11-06 07:32:46.378 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 8 to ShortTerm
+11-06 07:32:46.378 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 8 from the dpb
+11-06 07:32:46.378 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 8: timestamp9
+11-06 07:32:46.378 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [8] to the ready queue after decoding
+11-06 07:32:46.378 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 8
+11-06 07:32:46.379 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 236, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.379 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 9
+11-06 07:32:46.379 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 8, found position Some(1)
+11-06 07:32:46.379 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 7 to None
+11-06 07:32:46.380 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.380 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.380 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.380 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 7: false
+11-06 07:32:46.380 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 8: true
+11-06 07:32:46.380 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.380 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2515
+11-06 07:32:46.380 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2515
+11-06 07:32:46.380 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 0
+11-06 07:32:46.381 16637 16699 D CCodecConfig: c2 config diff is   c2::u32 output.delay.value = 10
+11-06 07:32:46.381 16637 16699 W ColorUtils: expected specified color aspects (2:0:0:0)
+11-06 07:32:46.384 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 1
+11-06 07:32:46.387 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 2
+11-06 07:32:46.388 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 237, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.390 16637 16699 D CCodecConfig: c2 config diff is   c2::u32 raw.crop.height = 720
+11-06 07:32:46.390 16637 16699 D CCodecConfig:   c2::u32 raw.crop.left = 0
+11-06 07:32:46.390 16637 16699 D CCodecConfig:   c2::u32 raw.crop.top = 0
+11-06 07:32:46.390 16637 16699 D CCodecConfig:   c2::u32 raw.crop.width = 1280
+11-06 07:32:46.391 16637 16699 W ColorUtils: expected specified color aspects (2:0:0:0)
+11-06 07:32:46.391 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 3
+11-06 07:32:46.391 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.392 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 12042, cros_codecs_decode_job.timestamp = 11, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 333330, work.get_frame_index()= 11
+11-06 07:32:46.392 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 0)
+11-06 07:32:46.392 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 238, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.395 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 4
+11-06 07:32:46.396 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 239, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.398 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 5
+11-06 07:32:46.398 16637 16699 W libc    : Access denied finding property "vendor.minigbm.debug"
+11-06 07:32:46.399 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 240, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.400 16637 16699 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:Output[N]] updating image-data
+11-06 07:32:46.400 16637 16699 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:Output[N]] updating stride = 1280, width: 1280, height: 720
+11-06 07:32:46.400 16637 16699 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:Output[N]] updating vstride = 720
+11-06 07:32:46.401 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 6
+11-06 07:32:46.402 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 241, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.403 16637 16652 D MediaTranscodingTestUtil: Output buffers changed
+11-06 07:32:46.403 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 7
+11-06 07:32:46.403 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.403 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 2558, cros_codecs_decode_job.timestamp = 12, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 366663, work.get_frame_index()= 12
+11-06 07:32:46.403 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 1)
+11-06 07:32:46.404 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 242, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.405 16637 16652 D MediaTranscodingTestUtil: Output format changed
+11-06 07:32:46.405 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.405 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 2973, cros_codecs_decode_job.timestamp = 13, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 399995, work.get_frame_index()= 13
+11-06 07:32:46.406 16637 16652 I MediaTranscodingTestUtil: Output frame number: 1
+11-06 07:32:46.406 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 8
+11-06 07:32:46.407 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 243, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.408 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.408 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 8007, cros_codecs_decode_job.timestamp = 14, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 433329, work.get_frame_index()= 14
+11-06 07:32:46.408 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 3)
+11-06 07:32:46.408 16637 16652 I MediaTranscodingTestUtil: Output frame number: 2
+11-06 07:32:46.409 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::client: Processing a completed job; timestamp = 9
+11-06 07:32:46.409 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 244, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.409 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 245, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.409 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 8412
+11-06 07:32:46.410 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 8412
+11-06 07:32:46.410 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 9
+11-06 07:32:46.410 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.410 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.410 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.410 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.410 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.411 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.411 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 0)
+11-06 07:32:46.411 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 12238, cros_codecs_decode_job.timestamp = 15, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 466661, work.get_frame_index()= 15
+11-06 07:32:46.411 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.411 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.411 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 10
+11-06 07:32:46.411 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 9 
+11-06 07:32:46.411 16637 16652 I MediaTranscodingTestUtil: Output frame number: 3
+11-06 07:32:46.411 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 10
+11-06 07:32:46.411 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 9, the DPB length is 1
+11-06 07:32:46.411 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 9 to ShortTerm
+11-06 07:32:46.411 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 9 from the dpb
+11-06 07:32:46.411 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 9: timestamp10
+11-06 07:32:46.411 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [9] to the ready queue after decoding
+11-06 07:32:46.411 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 9
+11-06 07:32:46.412 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 246, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.412 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 10
+11-06 07:32:46.412 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 9, found position Some(1)
+11-06 07:32:46.412 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 8 to None
+11-06 07:32:46.412 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.412 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.412 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.412 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 8: false
+11-06 07:32:46.413 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 9: true
+11-06 07:32:46.413 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.413 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 3621
+11-06 07:32:46.413 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 3621
+11-06 07:32:46.413 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1831
+11-06 07:32:46.413 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1831
+11-06 07:32:46.413 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 10
+11-06 07:32:46.413 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.413 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.413 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.413 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 5004, cros_codecs_decode_job.timestamp = 16, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 499995, work.get_frame_index()= 16
+11-06 07:32:46.414 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.414 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 1)
+11-06 07:32:46.414 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.414 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.414 16637 16652 I MediaTranscodingTestUtil: Output frame number: 4
+11-06 07:32:46.415 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.415 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.415 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 11
+11-06 07:32:46.415 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 10 
+11-06 07:32:46.415 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 11
+11-06 07:32:46.415 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 10, the DPB length is 1
+11-06 07:32:46.415 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 10 to ShortTerm
+11-06 07:32:46.415 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 10 from the dpb
+11-06 07:32:46.415 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 10: timestamp11
+11-06 07:32:46.415 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [10] to the ready queue after decoding
+11-06 07:32:46.415 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 10
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 247, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 11
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 10, found position Some(1)
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 9 to None
+11-06 07:32:46.416 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.416 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 9: false
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 10: true
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.416 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 718
+11-06 07:32:46.417 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 718
+11-06 07:32:46.417 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2149
+11-06 07:32:46.417 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2149
+11-06 07:32:46.417 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 11
+11-06 07:32:46.417 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.417 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.417 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.417 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.417 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.417 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.417 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 4389, cros_codecs_decode_job.timestamp = 17, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 533328, work.get_frame_index()= 17
+11-06 07:32:46.418 16637 16652 I MediaTranscodingTestUtil: Output frame number: 5
+11-06 07:32:46.418 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.418 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.418 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 12
+11-06 07:32:46.418 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 11 
+11-06 07:32:46.418 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 12
+11-06 07:32:46.418 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 11, the DPB length is 1
+11-06 07:32:46.418 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 11 to ShortTerm
+11-06 07:32:46.418 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 11 from the dpb
+11-06 07:32:46.418 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 11: timestamp12
+11-06 07:32:46.418 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [11] to the ready queue after decoding
+11-06 07:32:46.418 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 11
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 248, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 12
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 11, found position Some(1)
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 10 to None
+11-06 07:32:46.419 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.419 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 10: false
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 11: true
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 815
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 815
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 5784
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 5784
+11-06 07:32:46.419 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 12
+11-06 07:32:46.419 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.419 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.419 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.419 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.419 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.420 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.420 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.420 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 13
+11-06 07:32:46.420 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 12 
+11-06 07:32:46.420 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 13
+11-06 07:32:46.420 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 12, the DPB length is 1
+11-06 07:32:46.420 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 12 to ShortTerm
+11-06 07:32:46.420 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 12 from the dpb
+11-06 07:32:46.420 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 12: timestamp13
+11-06 07:32:46.420 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [12] to the ready queue after decoding
+11-06 07:32:46.420 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 12
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 249, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.421 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.421 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 8759, cros_codecs_decode_job.timestamp = 18, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 566660, work.get_frame_index()= 18
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 13
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 12, found position Some(1)
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 11 to None
+11-06 07:32:46.421 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.421 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 11: false
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 12: true
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2214
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2214
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 8538
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 8538
+11-06 07:32:46.421 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 13
+11-06 07:32:46.422 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.422 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.422 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.422 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.422 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.422 16637 16652 I MediaTranscodingTestUtil: Output frame number: 6
+11-06 07:32:46.422 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.422 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.422 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 14
+11-06 07:32:46.422 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 13 
+11-06 07:32:46.422 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 14
+11-06 07:32:46.422 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 13, the DPB length is 1
+11-06 07:32:46.422 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 13 to ShortTerm
+11-06 07:32:46.422 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 13 from the dpb
+11-06 07:32:46.422 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 13: timestamp14
+11-06 07:32:46.422 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [13] to the ready queue after decoding
+11-06 07:32:46.422 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 13
+11-06 07:32:46.423 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 250, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.423 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 14
+11-06 07:32:46.423 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 13, found position Some(1)
+11-06 07:32:46.423 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 12 to None
+11-06 07:32:46.423 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.423 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.423 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.423 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 12: false
+11-06 07:32:46.423 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 13: true
+11-06 07:32:46.423 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 3691
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 3691
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 3619
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 3619
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 14
+11-06 07:32:46.424 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.424 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.424 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.424 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.424 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.424 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.424 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.424 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 15
+11-06 07:32:46.424 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 14 
+11-06 07:32:46.424 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 15
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 14, the DPB length is 1
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 14 to ShortTerm
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 14 from the dpb
+11-06 07:32:46.424 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 14: timestamp15
+11-06 07:32:46.424 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [14] to the ready queue after decoding
+11-06 07:32:46.424 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 14
+11-06 07:32:46.425 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.425 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 7561, cros_codecs_decode_job.timestamp = 19, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 599994, work.get_frame_index()= 19
+11-06 07:32:46.425 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 0)
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 251, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 15
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 14, found position Some(1)
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 13 to None
+11-06 07:32:46.426 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.426 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.426 16637 16652 I MediaTranscodingTestUtil: Output frame number: 7
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 13: false
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 14: true
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1376
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1376
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 3282
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 3282
+11-06 07:32:46.426 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 15
+11-06 07:32:46.426 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.426 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.426 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.426 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.426 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.427 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.427 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.427 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 16
+11-06 07:32:46.427 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 15 
+11-06 07:32:46.427 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 16
+11-06 07:32:46.427 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 15, the DPB length is 1
+11-06 07:32:46.427 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 15 to ShortTerm
+11-06 07:32:46.427 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 15 from the dpb
+11-06 07:32:46.427 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 15: timestamp16
+11-06 07:32:46.427 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [15] to the ready queue after decoding
+11-06 07:32:46.427 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 15
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 252, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 16
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 15, found position Some(1)
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 14 to None
+11-06 07:32:46.428 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.428 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 14: false
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 15: true
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1098
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1098
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 6082
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 6082
+11-06 07:32:46.428 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 16
+11-06 07:32:46.428 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.428 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.428 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.428 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.428 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.429 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.429 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.429 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 17
+11-06 07:32:46.429 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 16 
+11-06 07:32:46.429 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 17
+11-06 07:32:46.429 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 16, the DPB length is 1
+11-06 07:32:46.429 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 16 to ShortTerm
+11-06 07:32:46.429 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 16 from the dpb
+11-06 07:32:46.429 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 16: timestamp17
+11-06 07:32:46.429 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [16] to the ready queue after decoding
+11-06 07:32:46.429 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 16
+11-06 07:32:46.429 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.429 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 6146, cros_codecs_decode_job.timestamp = 20, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 633326, work.get_frame_index()= 20
+11-06 07:32:46.430 16637 16652 I MediaTranscodingTestUtil: Output frame number: 8
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 253, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 17
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 16, found position Some(1)
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 15 to None
+11-06 07:32:46.430 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.430 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 15: false
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 16: true
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2668
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2668
+11-06 07:32:46.430 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 5337
+11-06 07:32:46.431 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 5337
+11-06 07:32:46.431 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 17
+11-06 07:32:46.431 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.431 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.431 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.431 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.431 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.431 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.431 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.431 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 18
+11-06 07:32:46.431 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 17 
+11-06 07:32:46.431 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 18
+11-06 07:32:46.431 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 17, the DPB length is 1
+11-06 07:32:46.431 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 17 to ShortTerm
+11-06 07:32:46.431 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 17 from the dpb
+11-06 07:32:46.431 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 17: timestamp18
+11-06 07:32:46.431 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [17] to the ready queue after decoding
+11-06 07:32:46.431 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 17
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 254, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 18
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 17, found position Some(1)
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 16 to None
+11-06 07:32:46.432 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.432 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 16: false
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 17: true
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.432 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 2215
+11-06 07:32:46.433 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 2215
+11-06 07:32:46.433 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 4468
+11-06 07:32:46.433 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 4468
+11-06 07:32:46.433 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 18
+11-06 07:32:46.433 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.433 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.433 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.433 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.433 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.433 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.433 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 5908, cros_codecs_decode_job.timestamp = 21, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 666660, work.get_frame_index()= 21
+11-06 07:32:46.433 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 2)
+11-06 07:32:46.433 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.433 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.433 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 19
+11-06 07:32:46.433 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 18 
+11-06 07:32:46.433 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 19
+11-06 07:32:46.433 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 18, the DPB length is 1
+11-06 07:32:46.433 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 18 to ShortTerm
+11-06 07:32:46.433 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 18 from the dpb
+11-06 07:32:46.433 16637 16652 I MediaTranscodingTestUtil: Output frame number: 9
+11-06 07:32:46.433 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 18: timestamp19
+11-06 07:32:46.433 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [18] to the ready queue after decoding
+11-06 07:32:46.433 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 18
+11-06 07:32:46.434 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 255, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.434 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 19
+11-06 07:32:46.434 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 18, found position Some(1)
+11-06 07:32:46.434 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 17 to None
+11-06 07:32:46.434 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.434 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.434 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.434 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 17: false
+11-06 07:32:46.434 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 18: true
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1669
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1669
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 4451
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 4451
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Finishing picture POC 19
+11-06 07:32:46.435 14370 16701 I iHD     : Melanie: Inside MediaLibvaInterfaceNext: BeginPicture called
+11-06 07:32:46.435 14370 16701 I iHD     : Melanie: Inside DDI: RenderPicture buffers=5
+11-06 07:32:46.435 14370 16701 I iHD     : Melanie: Inside HEVC RefFrames UpdateRefCachePolicy
+11-06 07:32:46.435 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: SetSliceStructs
+11-06 07:32:46.435 14370 16701 I iHD     : Melanie: Inside HEVC BasicFeature: Update
+11-06 07:32:46.435 14370 16701 I iHD     : Melanie: Inside DDI: EndPicture ctx=0x7365ece168e0
+11-06 07:32:46.435 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: SUBMIT PICTURE 
+11-06 07:32:46.435 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Timestamp: 20
+11-06 07:32:46.435 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: STORE IN DPB POC 19 
+11-06 07:32:46.435 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: timestamp 20
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Stored picture POC 19, the DPB length is 1
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 19 to ShortTerm
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Bumping POC 19 from the dpb
+11-06 07:32:46.435 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: BUMPED POC 19: timestamp20
+11-06 07:32:46.435 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [19] to the ready queue after decoding
+11-06 07:32:46.435 14370 16701 E cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: ADDED TO READY QUEUE POC 19
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs_c2_ffi::backend::real::allocation: Converted an ffi::Native2DBuffer to a GenericDmaVideoFrame; cros_codecs_dma_buf.token.get_id() = 256, cros_codecs_dma_buf.token.get_size() = Size { width: 1280, height: 768 }
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Decode picture POC 20
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: find_short_term_ref_by_poc: 19, found position Some(1)
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::codec::h265::picture: Set reference of POC 18 to None
+11-06 07:32:46.437 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: The total RPS length 1 is not the same as the DPB length 2
+11-06 07:32:46.437 14370 16701 W cros-codecs: cros_codecs::decoder::stateless::h265: A reference pic may be in more than one RPS list. This is against the specification. See 8.3.2. NOTE 5
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Removing unused pictures from DPB.
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 18: false
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::codec::h265::dpb: Retaining pic POC: 19: true
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Melanie: Adding POCs [] to the ready queue before decoding
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::decoder::stateless::h265: Processing NALU TrailR, length is 1448
+11-06 07:32:46.437 14370 16701 D cros-codecs: cros_codecs::codec::h265::parser: Parsed slice TrailR, NAL size was 1448
+11-06 07:32:46.437 14370 16701 E cros-codecs: cros_codecs_c2_ffi: panicked at ./system/cros-codecs/src/c2_wrapper/c2_decoder.rs:332:38:
+11-06 07:32:46.437 14370 16701 E cros-codecs: called `Result::unwrap()` on an `Err` value: while syncing picture
+11-06 07:32:46.437 14370 16701 E cros-codecs: 
+11-06 07:32:46.437 14370 16701 E cros-codecs: Caused by:
+11-06 07:32:46.437 14370 16701 E cros-codecs:     internal decoding error
+11-06 07:32:46.438   456   456 I tombstoned: received crash request for pid 14370
+11-06 07:32:46.438 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.438 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 15236, cros_codecs_decode_job.timestamp = 22, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 699993, work.get_frame_index()= 22
+11-06 07:32:46.438 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 3)
+11-06 07:32:46.440 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.440 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 9473, cros_codecs_decode_job.timestamp = 23, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 733325, work.get_frame_index()= 23
+11-06 07:32:46.440 16637 16645 D CCodecBuffers: [c2.cros-codecs.vaapi.hevc.decoder#316:1D-Input.Impl[N]] codec released a buffer owned by client (index 0)
+11-06 07:32:46.442 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.442 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 2176, cros_codecs_decode_job.timestamp = 24, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 766659, work.get_frame_index()= 24
+11-06 07:32:46.443 14370 16701 W libc    : Access denied finding property "ro.misctrl.16kb_before"
+11-06 07:32:46.443 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.443 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 5038, cros_codecs_decode_job.timestamp = 25, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 799991, work.get_frame_index()= 25
+11-06 07:32:46.444 14370 16670 D cros-codecs: cros_codecs_c2_ffi: cros_codecs_c2_ffi::C2ComponentDelegate<cros_codecs_c2_ffi::ffi::DecoderWork>::queue(); work_items.len() = 1
+11-06 07:32:46.445 14370 16670 D cros-codecs: cros_codecs_c2_ffi::backend::real::decoder: Created cros-codecs decode job; cros_codecs_decode_job.input.len() = 5691, cros_codecs_decode_job.timestamp = 26, cros_codecs_decode_job.drain = NoDrain, cros_codecs_decode_job.coded_specific_data = false, work.get_timestamp() = 833325, work.get_frame_index()= 26
+11-06 07:32:46.527 14370 16701 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+11-06 07:32:46.527 14370 16701 F DEBUG   : Build fingerprint: 'google/fatcat/fatcat:Baklava/MAIN/14389331:userdebug/test-keys'
+11-06 07:32:46.527 14370 16701 F DEBUG   : Kernel Release: '6.12.52-android16-5-gd0f313fd3e01-ab14355454'
+11-06 07:32:46.527 14370 16701 F DEBUG   : Revision: '0'
+11-06 07:32:46.527 14370 16701 F DEBUG   : ABI: 'x86_64'
+11-06 07:32:46.527 14370 16701 F DEBUG   : Timestamp: 2025-11-06 07:32:46.443115729+0000
+11-06 07:32:46.527 14370 16701 F DEBUG   : Process uptime: 237s
+11-06 07:32:46.527 14370 16701 F DEBUG   : Executable: /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service
+11-06 07:32:46.528 14370 16701 F DEBUG   : Cmdline: /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service
+11-06 07:32:46.528 14370 16701 F DEBUG   : pid: 14370, tid: 16701, name: binder:14370_3  >>> /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service <<<
+11-06 07:32:46.528 14370 16701 F DEBUG   : uid: 1046
+11-06 07:32:46.528 14370 16701 F DEBUG   : signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+11-06 07:32:46.528 14370 16701 F DEBUG   : Abort message: 'called `Result::unwrap()` on an `Err` value: while syncing picture
+11-06 07:32:46.528 14370 16701 F DEBUG   : 
+11-06 07:32:46.528 14370 16701 F DEBUG   : Caused by:
+11-06 07:32:46.528 14370 16701 F DEBUG   :     internal decoding error'
+11-06 07:32:46.528 14370 16701 F DEBUG   :     rax 0000000000000000  rbx 0000000000003822  rcx e9ed9baa9155944b  rdx 0000000000000006
+11-06 07:32:46.528 14370 16701 F DEBUG   :     r8  0000736510d967e8  r9  0000736510d967e8  r10 0000736510d96730  r11 00007367c08acd38
+11-06 07:32:46.528 14370 16701 F DEBUG   :     r12 0000593910d7c140  r13 0000593910d74298  r14 000000000000413d  r15 0000000000000001
+11-06 07:32:46.528 14370 16701 F DEBUG   :     rdi 0000000000003822  rsi 000000000000413d
+11-06 07:32:46.528 14370 16701 F DEBUG   :     rbp 0000736510d967d0  rsp 0000736510d96730  rip 00007367c08f8b19  err 0000000000000000
+11-06 07:32:46.528 14370 16701 F DEBUG   : 17 total frames
+11-06 07:32:46.528 14370 16701 F DEBUG   : backtrace:
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #00 pc 0000000000071b19  /apex/com.android.runtime/lib64/bionic/libc.so (abort+185) (BuildId: 164c71cc2f4c2656ec12a7055163676d)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #01 pc 0000000000199df9  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (std::sys::pal::unix::abort_internal+9) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #02 pc 00000000001975a8  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (std::process::abort+8) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #03 pc 00000000001973d9  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (__rustc::__rust_abort+9) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #04 pc 000000000019879e  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (__rustc::__rust_start_panic+14) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #05 pc 0000000000197e59  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (__rustc::rust_panic+9) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #06 pc 0000000000197daf  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (std::panicking::rust_panic_with_hook+380) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #07 pc 0000000000197ba8  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (std::panicking::begin_panic_handler::{closure#0}+152) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #08 pc 000000000019783d  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (__rustc::rust_begin_unwind+29) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #09 pc 00000000000687ef  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (core::panicking::panic_fmt+31) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #10 pc 000000000009c585  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (core::result::unwrap_failed+117) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #11 pc 0000000000184081  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (<cros_codecs::c2_wrapper::c2_decoder::C2DecoderWorker<cros_codecs::video_frame::generic_dma_video_frame::GenericDmaVideoFrame<cxx::shared_ptr::SharedPtr<cros_codecs_c2_ffi::ffi::Native2DBuffer>>, cros_codecs::c2_wrapper::c2_vaapi_decoder::C2VaapiDecoder>>::check_events+13457) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #12 pc 0000000000186b2c  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (<cros_codecs::c2_wrapper::c2_decoder::C2DecoderWorker<cros_codecs::video_frame::generic_dma_video_frame::GenericDmaVideoFrame<cxx::shared_ptr::SharedPtr<cros_codecs_c2_ffi::ffi::Native2DBuffer>>, cros_codecs::c2_wrapper::c2_vaapi_decoder::C2VaapiDecoder> as cros_codecs::c2_wrapper::C2Worker<cros_codecs::c2_wrapper::C2DecodeJob<cros_codecs::video_frame::generic_dma_video_frame::GenericDmaVideoFrame<cxx::shared_ptr::SharedPtr<cros_codecs_c2_ffi::ffi::Native2DBuffer>>>>>::process_loop+4796) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #13 pc 00000000001231fd  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (<<std::thread::Builder>::spawn_unchecked_<<cros_codecs::c2_wrapper::C2Wrapper<cros_codecs::c2_wrapper::C2DecodeJob<cros_codecs::video_frame::generic_dma_video_frame::GenericDmaVideoFrame<cxx::shared_ptr::SharedPtr<cros_codecs_c2_ffi::ffi::Native2DBuffer>>>, cros_codecs::c2_wrapper::c2_decoder::C2DecoderWorker<cros_codecs::video_frame::generic_dma_video_frame::GenericDmaVideoFrame<cxx::shared_ptr::SharedPtr<cros_codecs_c2_ffi::ffi::Native2DBuffer>>, cros_codecs::c2_wrapper::c2_vaapi_decoder::C2VaapiDecoder>>>::new<<cros_codecs_c2_ffi::backend::real::RealDelegateBackend<cros_codecs_c2_ffi::ffi::DecoderWork>>::new::{closure#0}, <cros_codecs_c2_ffi::backend::real::RealDelegateBackend<cros_codecs_c2_ffi::ffi::DecoderWork>>::new::{closure#1}, <cros_codecs_c2_ffi::backend::real::RealDelegateBackend<cros_codecs_c2_ffi::ffi::DecoderWork>>::new::{closure#2}, <cros_codecs_c2_ffi::backend::real::RealDelegateBackend<cros_codecs_c2_ffi::ffi::DecoderWork>>::new::{closure#3}>::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}+1789) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #14 pc 00000000001997a0  /vendor/bin/hw/android.hardware.media.c2-cros-codecs-service (<std::sys::pal::unix::thread::Thread>::new::thread_start+48) (BuildId: 99a2db489b12b39acb1285d2444ce2e5)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #15 pc 0000000000082f0f  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*) (.__uniq.67847048707805468364044055584648682506)+63) (BuildId: 164c71cc2f4c2656ec12a7055163676d)
+11-06 07:32:46.528 14370 16701 F DEBUG   :       #16 pc 000000000007539d  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+61) (BuildId: 164c71cc2f4c2656ec12a7055163676d)
+11-06 07:32:46.535   456   456 E tombstoned: Tombstone written to: tombstone_14

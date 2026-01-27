@@ -28,7 +28,9 @@ ENV/
 
 # Logs
 *.log
-logs/
+# Keep logs ignored by default, but allow committing a specific sample log file.
+logs/*
+!logs/hevc_fatcat.txt
 
 # ADAG-style traces (generated at runtime)
 agents/traces/
