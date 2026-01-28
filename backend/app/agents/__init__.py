@@ -5,4 +5,5 @@ This is intentionally lightweight: a YAML workflow defines sequential steps that
 """
 
 from .workflow_runner import run_workflow  # noqa: F401
+from .swarm import run_syscros_swarm, SwarmConfig  # noqa: F401
 

@@ -38,6 +38,20 @@ If you changed embedding mode (or improved mock embeddings), re-embed so similar
 python scripts/agent/run_workflow.py --workflow scripts/agent/workflows/jira_reembed_from_db.yaml --max-results 500
 ```
 
+### 5) Swarm agent (parallel specialists + aggregator)
+
+This runs multiple specialist agents in parallel (issue fetch, log signal extraction, similarity search, optional external fallback, and root-cause analysis) and then aggregates into a single `report + analysis` output.
+
+```powershell
+python scripts/agent/run_swarm.py --issue-key SYSCROS-131125 --limit 5
+```
+
+With logs + optional external knowledge fallback (privacy-safe; sends only sanitized error signatures):
+
+```powershell
+python scripts/agent/run_swarm.py --issue-key SYSCROS-131125 --logs-file logs/hevc_fatcat.txt --external-knowledge
+```
+
 ### Notes
 
 - If Gemini is blocked, set `USE_MOCK_EMBEDDING=true` in `.env` (or it will be auto-enabled by the CLI if unset).
