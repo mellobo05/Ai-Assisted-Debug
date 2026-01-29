@@ -184,6 +184,18 @@ def main() -> int:
     )
     parser.add_argument("--limit", type=int, default=5, help="How many similar issues to show")
     parser.add_argument(
+        "--use-swarm",
+        action="store_true",
+        help="Use the swarm runner (parallel specialists) which includes fix/logging suggestions.",
+    )
+    parser.add_argument("--domain", default=None, help="Optional domain hint (e.g., media)")
+    parser.add_argument("--os", dest="os_name", default=None, help="Optional OS hint (e.g., Windows, ChromeOS)")
+    parser.add_argument(
+        "--save-run",
+        action="store_true",
+        help="Persist analysis output to DB (jira_analysis_runs). Works best with --use-swarm.",
+    )
+    parser.add_argument(
         "--no-analysis",
         action="store_true",
         help="Disable the root-cause analysis section (llm.subagent).",
@@ -240,7 +252,38 @@ def main() -> int:
         },
     )
 
-    # Step 1: fetch + similar + report
+    # Option A: swarm runner (graph-like: parallel specialists + aggregator)
+    if bool(args.use_swarm):
+        from app.agents.swarm import SwarmConfig, run_syscros_swarm
+
+        out = run_syscros_swarm(
+            issue_key=issue_key,
+            logs_file=str(args.logs_file).strip() if args.logs_file else None,
+            domain=str(args.domain).strip() if args.domain else None,
+            os_name=str(args.os_name).strip() if args.os_name else None,
+            save_run=bool(args.save_run),
+            config=SwarmConfig(
+                limit=int(args.limit),
+                min_local_score=float(args.min_local_score),
+                external_knowledge=bool(args.external_knowledge),
+                external_max_results=int(args.external_max_results),
+            ),
+        )
+        report = str(out.get("report") or "")
+        analysis = str(out.get("analysis") or "")
+        trace.event("run_complete", {"run_id": run_id, "report_chars": len(report), "analysis_chars": len(analysis)})
+
+        print(report, end="" if report.endswith("\n") else "\n")
+        if analysis.strip():
+            print(analysis, end="" if analysis.endswith("\n") else "\n")
+        if trace.enabled and trace.path:
+            print(f"\n[trace] {trace.path}\n")
+        if args.save_run and out.get("saved_run"):
+            saved = out.get("saved_run") or {}
+            print(f"Saved analysis run: id={saved.get('id')}\n")
+        return 0
+
+    # Option B (legacy): deterministic fetch + report (+ optional analysis step)
     report = _run_fetch_and_summarize(issue_key=issue_key, limit=int(args.limit), trace=trace)
 
     analysis = ""
@@ -335,6 +378,9 @@ def main() -> int:
                     "Evidence (quotes/snippets from issue/comments)",
                     "Log evidence (specific error lines / exception names / error codes)",
                     "External references (short bullet list; include titles only)",
+                    "Logging improvements (specific log lines to add + where)",
+                    "Suggested code fixes",
+                    "Suggested patches (if possible): provide unified diffs with file paths; if you lack code context, say which files to inspect instead of inventing APIs.",
                     "Next debugging steps (5-8)",
                     "Suggested fix/mitigation",
                 ],

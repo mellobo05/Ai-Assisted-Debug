@@ -12,8 +12,9 @@ from app.services.embeddings import generate_embedding
 from app.integrations.jira.client import JiraService, build_embedding_text, extract_issue_fields
 from app.models.jira import JiraIssue, JiraEmbedding
 from app.schemas.debug import DebugRequest, DebugStartResponse, DebugStatusResponse
-from app.schemas.jira import JiraSyncRequest, JiraSyncResponse
+from app.schemas.jira import JiraSyncRequest, JiraSyncResponse, JiraIntakeRequest, JiraIntakeResponse
 from app.schemas.search import QueryRequest, SearchResponse, JiraSearchResult
+from app.schemas.snippets import SnippetSaveRequest, SnippetSaveResponse, SnippetListResponse
 
 app = FastAPI(title="AI Assisted Debugger")
 
@@ -291,4 +292,54 @@ async def jira_sync(request: JiraSyncRequest):
         "ingested": ingested,
         "embedded": embedded,
     }
+
+
+@app.post("/jira/intake", response_model=JiraIntakeResponse)
+async def jira_intake(request: JiraIntakeRequest):
+    """
+    Offline-friendly intake: store a user-provided issue key + summary (+ optional logs)
+    into `jira_issues` and generate an embedding for similarity search.
+    """
+    from app.agents.tools import jira_tools
+
+    out = jira_tools.intake_issue_from_user_input(
+        ctx={"inputs": {}, "steps": {}},
+        issue_key=request.issue_key,
+        summary=request.summary,
+        domain=request.domain,
+        os=request.os,
+        description=request.description,
+        logs=request.logs,
+    )
+    return {"issue_key": str(out.get("issue_key") or request.issue_key), "embedded": bool(out.get("embedded"))}
+
+
+@app.post("/snippets", response_model=SnippetSaveResponse)
+async def save_snippet(request: SnippetSaveRequest):
+    """
+    Save a code snippet (kernel/userspace, c/cpp/rust) for future reference.
+    """
+    from app.agents.tools import snippet_tools
+
+    out = snippet_tools.save_snippet(
+        ctx={"inputs": {}, "steps": {}},
+        issue_key=request.issue_key,
+        domain=request.domain,
+        layer=request.layer,
+        language=request.language,
+        file_path=request.file_path,
+        content=request.content,
+    )
+    return out  # type: ignore[return-value]
+
+
+@app.get("/snippets/{issue_key}", response_model=SnippetListResponse)
+async def list_snippets(issue_key: str, limit: int = 5):
+    """
+    List recent code snippets stored for a JIRA issue.
+    """
+    from app.agents.tools import snippet_tools
+
+    out = snippet_tools.list_snippets(ctx={"inputs": {}, "steps": {}}, issue_key=issue_key, limit=limit)
+    return out  # type: ignore[return-value]
 

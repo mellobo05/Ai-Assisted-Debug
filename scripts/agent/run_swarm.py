@@ -39,10 +39,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--issue-key", required=True, help="JIRA issue key (e.g., SYSCROS-131125)")
     parser.add_argument("--limit", type=int, default=5, help="Top-k similar issues to include")
+    parser.add_argument("--domain", default=None, help="Optional domain hint (e.g., media)")
+    parser.add_argument("--os", dest="os_name", default=None, help="Optional OS hint (e.g., Windows, ChromeOS)")
     parser.add_argument("--logs-file", default=None, help="Optional path to logs file for error signature extraction")
     parser.add_argument("--external-knowledge", action="store_true", help="Enable external web search fallback (privacy-safe)")
     parser.add_argument("--min-local-score", type=float, default=0.62, help="Trigger external search if top score < this")
     parser.add_argument("--external-max-results", type=int, default=5, help="Max external references when fallback triggers")
+    parser.add_argument("--save-run", action="store_true", help="Persist analysis output to DB (jira_analysis_runs)")
     parser.add_argument("--json", dest="as_json", action="store_true", help="Print full JSON output (debugging)")
     args = parser.parse_args()
 
@@ -51,6 +54,9 @@ def main() -> int:
     out = run_syscros_swarm(
         issue_key=str(args.issue_key).strip(),
         logs_file=str(args.logs_file).strip() if args.logs_file else None,
+        domain=str(args.domain).strip() if args.domain else None,
+        os_name=str(args.os_name).strip() if args.os_name else None,
+        save_run=bool(args.save_run),
         config=SwarmConfig(
             limit=int(args.limit),
             min_local_score=float(args.min_local_score),

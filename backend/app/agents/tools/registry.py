@@ -6,6 +6,7 @@ from . import jira_tools
 from . import llm_tools
 from . import log_tools
 from . import external_knowledge_tools
+from . import snippet_tools
 
 
 ToolFn = Callable[..., Any]
@@ -20,6 +21,8 @@ def build_default_tool_registry() -> Dict[str, ToolFn]:
     return {
         # Offline DB fetch
         "jira.get_issue_from_db": jira_tools.get_issue_from_db,
+        # Offline intake (user-provided issue key + summary + logs)
+        "jira.intake": jira_tools.intake_issue_from_user_input,
         # Re-embed issues already stored in DB (useful after embedding provider changes)
         "jira.reembed_from_db": jira_tools.reembed_from_db,
         # JIRA ingestion (live JIRA -> DB)
@@ -37,5 +40,10 @@ def build_default_tool_registry() -> Dict[str, ToolFn]:
         "log.extract_error_signals": log_tools.extract_error_signals,
         # External knowledge (optional; may be blocked on corporate networks)
         "web.search": external_knowledge_tools.web_search,
+        # Persist analysis output (optional)
+        "jira.save_analysis": jira_tools.save_analysis_run,
+        # Store/retrieve user-pasted code snippets for future runs
+        "snippet.save": snippet_tools.save_snippet,
+        "snippet.list": snippet_tools.list_snippets,
     }
 

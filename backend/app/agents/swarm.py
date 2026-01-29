@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 
+_MEDIA_DRIVER_RELEASES_URL = "https://github.com/intel/media-driver/releases"
+
+
 @dataclass(frozen=True)
 class SwarmConfig:
     """
@@ -51,10 +54,29 @@ def _build_sources_header(*, top_sim: float, min_local_score: float, external_re
     return "\n".join(lines).rstrip() + "\n\n"
 
 
+def _looks_like_media_domain(*, domain: Optional[str], issue: Dict[str, Any], log_signals: Optional[Dict[str, Any]]) -> bool:
+    d = (str(domain or "") or "").strip().lower()
+    if d in {"media", "video", "audio", "codec", "hevc"}:
+        return True
+
+    text = " ".join(
+        [
+            str(issue.get("summary") or ""),
+            str(issue.get("description") or ""),
+            str(issue.get("latest_comment") or ""),
+            " ".join([str(x) for x in ((log_signals or {}).get("signals") or [])[:20]]),
+        ]
+    ).lower()
+    return any(k in text for k in ["hevc", "h.265", "decodererror", "cros-codecs", "vaapi", "libva", "media-driver", "v4l2"])
+
+
 def run_syscros_swarm(
     *,
     issue_key: str,
     logs_file: Optional[str] = None,
+    domain: Optional[str] = None,
+    os_name: Optional[str] = None,
+    save_run: bool = False,
     config: Optional[SwarmConfig] = None,
 ) -> Dict[str, Any]:
     """
@@ -73,14 +95,17 @@ def run_syscros_swarm(
     """
     from concurrent.futures import ThreadPoolExecutor
 
-    from app.agents.tools import external_knowledge_tools, jira_tools, llm_tools, log_tools
+    from app.agents.tools import external_knowledge_tools, jira_tools, llm_tools, log_tools, snippet_tools
 
     cfg = config or SwarmConfig()
     key = str(issue_key or "").strip()
     if not key:
         raise ValueError("issue_key is required")
 
-    ctx: Dict[str, Any] = {"inputs": {"issue_key": key, "limit": int(cfg.limit), "logs_file": logs_file}, "steps": {}}
+    ctx: Dict[str, Any] = {
+        "inputs": {"issue_key": key, "limit": int(cfg.limit), "logs_file": logs_file, "domain": domain, "os": os_name},
+        "steps": {},
+    }
 
     def agent_fetch_issue() -> Dict[str, Any]:
         issue = jira_tools.get_issue_from_db(ctx=ctx, issue_key=key)
@@ -153,6 +178,20 @@ def run_syscros_swarm(
     )
     ctx["steps"]["report"] = report
 
+    is_media = _looks_like_media_domain(domain=domain, issue=issue, log_signals=log_signals)
+    curated_refs: List[Dict[str, str]] = []
+    if is_media:
+        curated_refs.append({"title": "intel/media-driver releases (curated)", "url": _MEDIA_DRIVER_RELEASES_URL})
+
+    # Pull stored snippets for this issue (future reference)
+    snippets = []
+    try:
+        snippets_out = snippet_tools.list_snippets(ctx=ctx, issue_key=key, limit=5)
+        if isinstance(snippets_out, dict) and isinstance(snippets_out.get("items"), list):
+            snippets = snippets_out.get("items") or []
+    except Exception:
+        snippets = []
+
     sources_header = _build_sources_header(
         top_sim=_top_similarity(similar),
         min_local_score=float(cfg.min_local_score),
@@ -172,11 +211,15 @@ def run_syscros_swarm(
             f"Target issue key: {key}. Use the target issue fields, log signals, and the similar issues list as evidence. Do not invent details.",
             "If logs/signatures are provided, treat them as the primary evidence for what failed and why.",
             "If external references are provided, use them only as supporting context and clearly label them as external (not confirmed).",
+            "If this is a media/codec issue, include a 'Media stack checks' section and reference the curated media-driver release notes link when relevant.",
             "Output (concise):",
             "Probable root cause (ranked hypotheses + confidence 0-100)",
             "Evidence (quotes/snippets from issue/comments)",
             "Log evidence (specific error lines / exception names / error codes)",
             "External references (titles only)",
+            "Logging improvements (specific log lines to add + where)",
+            "Suggested code fixes",
+            "Suggested patches (if possible): provide unified diffs with file paths; if you lack code context, say which files to inspect instead of inventing APIs.",
             "Next debugging steps (5-8)",
             "Suggested fix/mitigation",
         ],
@@ -187,6 +230,10 @@ def run_syscros_swarm(
             "log_signals": log_signals,
             "logs_tail": logs_tail if logs_tail else None,
             "external_refs": external_refs,
+            "curated_refs": curated_refs or None,
+            "code_snippets": snippets or None,
+            "domain": domain,
+            "os": os_name,
             "local_top_similarity": float(_top_similarity(similar)),
             "min_local_score": float(cfg.min_local_score),
         },
@@ -195,19 +242,46 @@ def run_syscros_swarm(
         analysis = sources_header + analysis.lstrip()
     ctx["steps"]["analysis"] = analysis
 
+    saved: Optional[Dict[str, Any]] = None
+    if bool(save_run):
+        try:
+            saved = jira_tools.save_analysis_run(
+                ctx=ctx,
+                issue_key=key,
+                domain=domain,
+                os=os_name,
+                logs_fingerprint=(str((log_signals or {}).get("fingerprint") or "").strip() or None)
+                if isinstance(log_signals, dict)
+                else None,
+                inputs={
+                    "domain": domain,
+                    "os": os_name,
+                    "logs_file": logs_file,
+                    "log_fingerprint": (log_signals or {}).get("fingerprint") if isinstance(log_signals, dict) else None,
+                },
+                report=report,
+                analysis=analysis,
+            )
+            ctx["steps"]["saved_run"] = saved
+        except Exception:
+            saved = None
+
     return {
         "issue": issue,
         "log_signals": log_signals,
         "similar": similar,
         "external_refs": external_refs,
+        "curated_refs": curated_refs,
         "report": report,
         "analysis": analysis,
+        "saved_run": saved,
         "meta": {
             "issue_key": key,
             "limit": int(cfg.limit),
             "min_local_score": float(cfg.min_local_score),
             "external_knowledge": bool(cfg.external_knowledge),
             "external_max_results": int(cfg.external_max_results),
+            "save_run": bool(save_run),
         },
     }
 

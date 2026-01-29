@@ -52,6 +52,19 @@ With logs + optional external knowledge fallback (privacy-safe; sends only sanit
 python scripts/agent/run_swarm.py --issue-key SYSCROS-131125 --logs-file logs/hevc_fatcat.txt --external-knowledge
 ```
 
+### 6) New JIRA analysis intake (user-provided key + summary + logs)
+
+This is for when you’re a debug engineer and you have a **new** JIRA that is not in the DB yet, but you want RCA + fix/logging suggestions immediately.
+
+It will:
+- Store the user-provided issue into `jira_issues` + `jira_embeddings`
+- Run the swarm analysis (RCA + logging improvements + suggested fixes/patches)
+- Optionally persist the analysis output to `jira_analysis_runs`
+
+```powershell
+python scripts/agent/run_new_jira_analysis.py --issue-key SYSCROS-999999 --summary "Video flicker on playback" --domain media --os "ChromeOS" --logs-file logs/hevc_fatcat.txt --external-knowledge --save-run
+```
+
 ### Notes
 
 - If Gemini is blocked, set `USE_MOCK_EMBEDDING=true` in `.env` (or it will be auto-enabled by the CLI if unset).

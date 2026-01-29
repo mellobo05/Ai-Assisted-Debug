@@ -4,9 +4,11 @@ from typing import Any, Dict, List, Optional
 
 from app.db.session import SessionLocal
 from app.integrations.jira.client import JiraService, build_embedding_text, extract_issue_fields
+from app.models.jira_analysis import JiraAnalysisRun
 from app.models.jira import JiraEmbedding, JiraIssue
 from app.services.embeddings import generate_embedding
 from app.services.search import find_similar_jira
+from app.schemas.common import JIRA_ISSUE_KEY_RE
 
 
 def get_issue_from_db(
@@ -85,6 +87,161 @@ def get_issue_from_db(
             "latest_comment": latest_comment,
             "embedding_text": embedding_text,
         }
+    finally:
+        db.close()
+
+
+def intake_issue_from_user_input(
+    *,
+    ctx: Dict[str, Any],
+    issue_key: str,
+    summary: str,
+    domain: Optional[str] = None,
+    os: Optional[str] = None,
+    description: Optional[str] = None,
+    logs: Optional[str] = None,
+    components: Optional[List[str]] = None,
+    labels: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Create/update a JIRA issue row from *user-provided* inputs (offline-friendly).
+
+    This supports the "new JIRA analysis" flow where you have:
+      - issue_key (e.g. SYSCROS-123)
+      - summary (e.g. Video flicker)
+      - optional domain/os/logs (logs are stored in raw + optionally embedded text)
+
+    We also generate/update an embedding for semantic search in `jira_embeddings`.
+    """
+    key = str(issue_key or "").strip().upper()
+    if not key or not JIRA_ISSUE_KEY_RE.match(key):
+        raise ValueError(f"Invalid issue_key: {issue_key!r}")
+    s = str(summary or "").strip()
+    if not s:
+        raise ValueError("summary is required")
+
+    # Avoid storing gigantic raw logs in SQL text columns.
+    def _truncate(text: Optional[str], max_chars: int) -> Optional[str]:
+        t = str(text or "").strip()
+        if not t:
+            return None
+        if len(t) <= max_chars:
+            return t
+        return t[: max_chars - 3] + "..."
+
+    domain_s = str(domain or "").strip() or None
+    os_s = str(os or "").strip() or None
+    desc_s = _truncate(description, 200_000)
+    logs_s = _truncate(logs, 200_000)
+    components_s = [str(c).strip() for c in (components or []) if str(c).strip()] or None
+    labels_s = [str(l).strip() for l in (labels or []) if str(l).strip()] or None
+
+    # Build an embedding text blob (similar to get_issue_from_db builder).
+    parts: List[str] = [f"Issue: {key}", f"Summary: {s}"]
+    if desc_s:
+        parts.append(f"Description: {desc_s}")
+    if domain_s:
+        parts.append(f"Domain: {domain_s}")
+    if os_s:
+        parts.append(f"OS: {os_s}")
+    if components_s:
+        parts.append(f"Components: {', '.join(components_s)}")
+    if labels_s:
+        parts.append(f"Labels: {', '.join(labels_s)}")
+    if logs_s:
+        # Keep logs clearly labeled so downstream prompts can treat it as evidence.
+        parts.append("Logs:\n" + logs_s)
+    embedding_text = "\n".join(parts).strip()
+
+    raw = {
+        "source": "user_intake",
+        "issue_key": key,
+        "summary": s,
+        "description": desc_s,
+        "domain": domain_s,
+        "os": os_s,
+        "components": components_s,
+        "labels": labels_s,
+        "logs": logs_s,
+    }
+
+    db = SessionLocal()
+    try:
+        issue = JiraIssue(
+            issue_key=key,
+            jira_id=None,
+            summary=s,
+            description=desc_s,
+            status="NEW",
+            priority=None,
+            assignee=None,
+            issue_type="UserIntake",
+            program_theme=None,
+            labels=labels_s,
+            components=components_s,
+            comments=None,
+            url=None,
+            raw=raw,
+        )
+        db.merge(issue)
+
+        emb = generate_embedding(embedding_text, task_type="retrieval_document")
+        if not isinstance(emb, list) or len(emb) == 0:
+            raise ValueError("Failed to generate embedding for intake issue")
+        db.merge(JiraEmbedding(issue_key=key, embedding=emb))
+
+        db.commit()
+        return {
+            "issue_key": key,
+            "summary": s,
+            "domain": domain_s,
+            "os": os_s,
+            "embedded": True,
+            "embedding_text": embedding_text,
+        }
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def save_analysis_run(
+    *,
+    ctx: Dict[str, Any],
+    issue_key: str,
+    domain: Optional[str] = None,
+    os: Optional[str] = None,
+    logs_fingerprint: Optional[str] = None,
+    inputs: Optional[Dict[str, Any]] = None,
+    report: Optional[str] = None,
+    analysis: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Persist a swarm/workflow run output for later retrieval.
+    """
+    key = str(issue_key or "").strip().upper()
+    if not key or not JIRA_ISSUE_KEY_RE.match(key):
+        raise ValueError(f"Invalid issue_key: {issue_key!r}")
+
+    db = SessionLocal()
+    try:
+        row = JiraAnalysisRun(
+            issue_key=key,
+            domain=str(domain or "").strip() or None,
+            os=str(os or "").strip() or None,
+            logs_fingerprint=str(logs_fingerprint or "").strip() or None,
+            inputs=inputs if isinstance(inputs, dict) else None,
+            report=str(report or "").strip() or None,
+            analysis=str(analysis or "").strip() or None,
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return {"id": str(row.id), "issue_key": key, "saved": True}
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
