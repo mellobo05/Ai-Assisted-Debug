@@ -41,6 +41,39 @@ export type SearchResponse = {
   results: JiraSearchResult[];
 };
 
+export type JiraIntakeRequest = {
+  issue_key: string;
+  summary: string;
+  domain?: string | null;
+  os?: string | null;
+  description?: string | null;
+  logs?: string | null;
+};
+
+export type JiraIntakeResponse = {
+  issue_key: string;
+  embedded: boolean;
+};
+
+export type JiraSummarizeRequest = {
+  issue_key: string;
+  domain?: string | null;
+  os?: string | null;
+  logs?: string | null;
+  limit?: number;
+  external_knowledge?: boolean;
+  min_local_score?: number;
+  external_max_results?: number;
+  save_run?: boolean;
+};
+
+export type JiraSummarizeResponse = {
+  issue_key: string;
+  report: string;
+  analysis: string;
+  saved_run?: any;
+};
+
 const DEFAULT_API_BASE = "http://127.0.0.1:8000";
 const API_BASE =
   (import.meta as any).env?.VITE_API_BASE?.toString?.() || DEFAULT_API_BASE;
@@ -114,6 +147,39 @@ export async function searchJira(payload: SearchRequest): Promise<SearchResponse
       })
     },
     15000
+  );
+}
+
+export async function jiraIntake(payload: JiraIntakeRequest): Promise<JiraIntakeResponse> {
+  return await fetchJsonWithTimeout<JiraIntakeResponse>(
+    `${API_BASE}/jira/intake`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    },
+    15000
+  );
+}
+
+export async function jiraSummarize(
+  payload: JiraSummarizeRequest
+): Promise<JiraSummarizeResponse> {
+  return await fetchJsonWithTimeout<JiraSummarizeResponse>(
+    `${API_BASE}/jira/summarize`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...payload,
+        limit: payload.limit ?? 5,
+        external_knowledge: payload.external_knowledge ?? false,
+        min_local_score: payload.min_local_score ?? 0.62,
+        external_max_results: payload.external_max_results ?? 5,
+        save_run: payload.save_run ?? false
+      })
+    },
+    30000
   );
 }
 

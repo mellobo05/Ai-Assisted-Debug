@@ -2,10 +2,14 @@ import React, { useMemo, useState } from "react";
 import {
   getApiBase,
   getDebugStatus,
+  jiraIntake,
+  jiraSummarize,
   searchJira,
   startDebug,
   type DebugRequest,
   type DebugResponse,
+  type JiraIntakeRequest,
+  type JiraSummarizeResponse,
   type JiraSearchResult
 } from "./api";
 
@@ -57,6 +61,27 @@ export function App() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<JiraSearchResult[]>([]);
 
+  const [jiraIntakeForm, setJiraIntakeForm] = useState<JiraIntakeRequest>(() => ({
+    issue_key: "",
+    summary: "",
+    domain: "",
+    os: detectOs(),
+    logs: ""
+  }));
+  const [isJiraIntaking, setIsJiraIntaking] = useState(false);
+  const [jiraIntakeResult, setJiraIntakeResult] = useState<any>(null);
+  const [jiraIntakeError, setJiraIntakeError] = useState<string | null>(null);
+
+  const [jiraKeyToSummarize, setJiraKeyToSummarize] = useState("");
+  const [jiraSummDomain, setJiraSummDomain] = useState<string>("");
+  const [jiraSummOs, setJiraSummOs] = useState<string>(detectOs());
+  const [jiraSummLogs, setJiraSummLogs] = useState<string>("");
+  const [jiraSummExternal, setJiraSummExternal] = useState<boolean>(false);
+  const [jiraSummMinScore, setJiraSummMinScore] = useState<number>(0.62);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [jiraSummary, setJiraSummary] = useState<JiraSummarizeResponse | null>(null);
+  const [jiraSummError, setJiraSummError] = useState<string | null>(null);
+
   const apiBase = useMemo(() => getApiBase(), []);
 
   const canSubmit =
@@ -67,6 +92,22 @@ export function App() {
     !isSubmitting;
 
   const canSearch = searchQuery.trim().length > 0 && !isSearching;
+
+  const canJiraIntake =
+    jiraIntakeForm.issue_key.trim().length > 0 &&
+    jiraIntakeForm.summary.trim().length > 0 &&
+    !isJiraIntaking;
+
+  const canSummarize = jiraKeyToSummarize.trim().length > 0 && !isSummarizing;
+
+  async function readFileAsText(file: File): Promise<string> {
+    return await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onerror = () => reject(new Error("Failed to read file"));
+      r.onload = () => resolve(String(r.result ?? ""));
+      r.readAsText(file);
+    });
+  }
 
   async function pollDebugStatus(sessionId: string) {
     const startedAt = Date.now();
@@ -123,6 +164,50 @@ export function App() {
     }
   }
 
+  async function onJiraIntake(e: React.FormEvent) {
+    e.preventDefault();
+    setJiraIntakeError(null);
+    setJiraIntakeResult(null);
+    setIsJiraIntaking(true);
+    try {
+      const resp = await jiraIntake({
+        issue_key: jiraIntakeForm.issue_key.trim().toUpperCase(),
+        summary: jiraIntakeForm.summary.trim(),
+        domain: jiraIntakeForm.domain?.trim() || null,
+        os: jiraIntakeForm.os?.trim() || null,
+        description: jiraIntakeForm.description?.trim() || null,
+        logs: jiraIntakeForm.logs?.trim() || null
+      });
+      setJiraIntakeResult(resp);
+    } catch (err: any) {
+      setJiraIntakeError(err?.message ?? String(err));
+    } finally {
+      setIsJiraIntaking(false);
+    }
+  }
+
+  async function onJiraSummarize(e: React.FormEvent) {
+    e.preventDefault();
+    setJiraSummError(null);
+    setJiraSummary(null);
+    setIsSummarizing(true);
+    try {
+      const resp = await jiraSummarize({
+        issue_key: jiraKeyToSummarize.trim().toUpperCase(),
+        domain: jiraSummDomain.trim() || null,
+        os: jiraSummOs.trim() || null,
+        logs: jiraSummLogs.trim() || null,
+        external_knowledge: jiraSummExternal,
+        min_local_score: jiraSummMinScore
+      });
+      setJiraSummary(resp);
+    } catch (err: any) {
+      setJiraSummError(err?.message ?? String(err));
+    } finally {
+      setIsSummarizing(false);
+    }
+  }
+
   return (
     <div className="page">
       <header className="header">
@@ -139,6 +224,316 @@ export function App() {
       </header>
 
       <main className="grid">
+        <section className="card">
+          <div className="cardTitle">Add new JIRA (offline intake)</div>
+          <div className="muted">
+            Stores the issue into <code>jira_issues</code>/<code>jira_embeddings</code> so you can
+            search/summarize it later.
+          </div>
+
+          <form onSubmit={onJiraIntake} className="form">
+            <div className="row">
+              <div className="field">
+                <label className="label" htmlFor="intakeKey">
+                  JIRA key
+                </label>
+                <input
+                  id="intakeKey"
+                  className="input"
+                  placeholder="e.g. SYSCROS-123456"
+                  value={jiraIntakeForm.issue_key}
+                  onChange={(e) =>
+                    setJiraIntakeForm((s) => ({ ...s, issue_key: e.target.value.toUpperCase() }))
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <label className="label" htmlFor="intakeOs">
+                  OS
+                </label>
+                <select
+                  id="intakeOs"
+                  className="select"
+                  value={jiraIntakeForm.os ?? detectOs()}
+                  onChange={(e) => setJiraIntakeForm((s) => ({ ...s, os: e.target.value }))}
+                >
+                  {OS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="field">
+              <label className="label" htmlFor="intakeSummary">
+                Summary
+              </label>
+              <input
+                id="intakeSummary"
+                className="input"
+                placeholder="e.g. Video flicker during playback"
+                value={jiraIntakeForm.summary}
+                onChange={(e) => setJiraIntakeForm((s) => ({ ...s, summary: e.target.value }))}
+              />
+            </div>
+
+            <div className="row">
+              <div className="field">
+                <label className="label" htmlFor="intakeDomain">
+                  Domain
+                </label>
+                <input
+                  id="intakeDomain"
+                  className="input"
+                  placeholder="e.g. media"
+                  value={jiraIntakeForm.domain ?? ""}
+                  onChange={(e) => setJiraIntakeForm((s) => ({ ...s, domain: e.target.value }))}
+                />
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="intakeLogsFile">
+                  Logs file (optional)
+                </label>
+                <input
+                  id="intakeLogsFile"
+                  className="input"
+                  type="file"
+                  accept=".txt,.log"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const text = await readFileAsText(f);
+                    setJiraIntakeForm((s) => ({ ...s, logs: text }));
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="field">
+              <label className="label" htmlFor="intakeLogs">
+                Logs (optional)
+              </label>
+              <textarea
+                id="intakeLogs"
+                className="textarea"
+                placeholder="Paste relevant logs here (optional)…"
+                value={jiraIntakeForm.logs ?? ""}
+                onChange={(e) => setJiraIntakeForm((s) => ({ ...s, logs: e.target.value }))}
+                rows={6}
+              />
+            </div>
+
+            <div className="actions">
+              <button className="button" disabled={!canJiraIntake} type="submit">
+                {isJiraIntaking ? "Saving…" : "Save JIRA to DB"}
+              </button>
+              <button
+                className="buttonSecondary"
+                type="button"
+                onClick={() => {
+                  setJiraIntakeForm({
+                    issue_key: "",
+                    summary: "",
+                    domain: "",
+                    os: detectOs(),
+                    logs: ""
+                  });
+                  setJiraIntakeResult(null);
+                  setJiraIntakeError(null);
+                }}
+                disabled={isJiraIntaking}
+              >
+                Clear
+              </button>
+            </div>
+          </form>
+
+          {jiraIntakeError && (
+            <div className="errorBox">
+              <div className="errorTitle">Intake failed</div>
+              <pre className="pre">{jiraIntakeError}</pre>
+            </div>
+          )}
+          {jiraIntakeResult && (
+            <div className="resultBox">
+              <div className="kv">
+                <div className="k">issue_key</div>
+                <div className="v">
+                  <code>{jiraIntakeResult.issue_key}</code>
+                </div>
+              </div>
+              <div className="kv">
+                <div className="k">embedded</div>
+                <div className="v">
+                  <code>{String(Boolean(jiraIntakeResult.embedded))}</code>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="card">
+          <div className="cardTitle">Fetch &amp; summarize JIRA</div>
+          <div className="muted">
+            Runs the swarm summary on your locally stored <code>jira_issues</code> and returns{" "}
+            <code>report + analysis</code>.
+          </div>
+
+          <form onSubmit={onJiraSummarize} className="form">
+            <div className="row">
+              <div className="field">
+                <label className="label" htmlFor="summKey">
+                  JIRA key
+                </label>
+                <input
+                  id="summKey"
+                  className="input"
+                  placeholder="e.g. SYSCROS-123456"
+                  value={jiraKeyToSummarize}
+                  onChange={(e) => setJiraKeyToSummarize(e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="summDomain">
+                  Domain
+                </label>
+                <input
+                  id="summDomain"
+                  className="input"
+                  placeholder="e.g. media"
+                  value={jiraSummDomain}
+                  onChange={(e) => setJiraSummDomain(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="row">
+              <div className="field">
+                <label className="label" htmlFor="summOs">
+                  OS
+                </label>
+                <select
+                  id="summOs"
+                  className="select"
+                  value={jiraSummOs}
+                  onChange={(e) => setJiraSummOs(e.target.value)}
+                >
+                  {OS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="summLogsFile">
+                  Logs file (optional)
+                </label>
+                <input
+                  id="summLogsFile"
+                  className="input"
+                  type="file"
+                  accept=".txt,.log"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const text = await readFileAsText(f);
+                    setJiraSummLogs(text);
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="field">
+              <label className="label" htmlFor="summLogs">
+                Logs (optional)
+              </label>
+              <textarea
+                id="summLogs"
+                className="textarea"
+                placeholder="Paste relevant logs (optional)…"
+                value={jiraSummLogs}
+                onChange={(e) => setJiraSummLogs(e.target.value)}
+                rows={6}
+              />
+            </div>
+
+            <div className="row">
+              <div className="field">
+                <label className="label" htmlFor="summExternal">
+                  External knowledge
+                </label>
+                <select
+                  id="summExternal"
+                  className="select"
+                  value={jiraSummExternal ? "yes" : "no"}
+                  onChange={(e) => setJiraSummExternal(e.target.value === "yes")}
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes (if similarity &lt; threshold)</option>
+                </select>
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="summMinScore">
+                  Similarity threshold
+                </label>
+                <input
+                  id="summMinScore"
+                  className="input"
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={jiraSummMinScore}
+                  onChange={(e) => setJiraSummMinScore(Number(e.target.value || 0.62))}
+                />
+              </div>
+            </div>
+
+            <div className="actions">
+              <button className="button" disabled={!canSummarize} type="submit">
+                {isSummarizing ? "Summarizing…" : "Fetch & summarize"}
+              </button>
+              <button
+                className="buttonSecondary"
+                type="button"
+                onClick={() => {
+                  setJiraSummary(null);
+                  setJiraSummError(null);
+                }}
+                disabled={isSummarizing}
+              >
+                Clear output
+              </button>
+            </div>
+          </form>
+
+          {jiraSummError && (
+            <div className="errorBox">
+              <div className="errorTitle">Summarize failed</div>
+              <pre className="pre">{jiraSummError}</pre>
+            </div>
+          )}
+
+          {jiraSummary && (
+            <div className="resultBox">
+              <div className="kv">
+                <div className="k">issue_key</div>
+                <div className="v">
+                  <code>{jiraSummary.issue_key}</code>
+                </div>
+              </div>
+              <div className="hint">Report</div>
+              <pre className="pre">{jiraSummary.report}</pre>
+              <div className="hint">Analysis</div>
+              <pre className="pre">{jiraSummary.analysis}</pre>
+            </div>
+          )}
+        </section>
+
         <section className="card">
           <div className="cardTitle">New Debug Request</div>
           <form onSubmit={onSubmit} className="form">

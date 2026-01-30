@@ -96,3 +96,48 @@ class JiraIntakeResponse(APIModel):
     issue_key: str
     embedded: bool
 
+
+class JiraSummarizeRequest(APIModel):
+    """
+    Fetch + summarize (RCA + fix suggestions) for an existing issue in the local DB.
+
+    This uses the swarm runner and can optionally take pasted logs text.
+    """
+
+    issue_key: str = Field(..., min_length=3, max_length=50)
+    domain: str | None = Field(default=None, max_length=80)
+    os: str | None = Field(default=None, max_length=80)
+    logs: str | None = Field(default=None, max_length=200_000)
+
+    limit: int = Field(default=5, ge=1, le=20)
+    external_knowledge: bool = False
+    min_local_score: float = Field(default=0.62, ge=0.0, le=1.0)
+    external_max_results: int = Field(default=5, ge=1, le=10)
+    save_run: bool = False
+
+    @field_validator("issue_key", mode="before")
+    @classmethod
+    def _normalize_issue_key(cls, v: Any):
+        if v is None:
+            return v
+        s = str(v).strip().upper()
+        return s
+
+    _strip_domain = field_validator("domain", mode="before")(_strip_or_none)
+    _strip_os = field_validator("os", mode="before")(_strip_or_none)
+    _strip_logs = field_validator("logs", mode="before")(_strip_or_none)
+
+    @field_validator("issue_key")
+    @classmethod
+    def _validate_issue_key(cls, v: str):
+        if not JIRA_ISSUE_KEY_RE.match(v or ""):
+            raise ValueError("Invalid JIRA issue key format")
+        return v
+
+
+class JiraSummarizeResponse(APIModel):
+    issue_key: str
+    report: str
+    analysis: str
+    saved_run: dict | None = None
+

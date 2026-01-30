@@ -74,6 +74,7 @@ def run_syscros_swarm(
     *,
     issue_key: str,
     logs_file: Optional[str] = None,
+    logs_text: Optional[str] = None,
     domain: Optional[str] = None,
     os_name: Optional[str] = None,
     save_run: bool = False,
@@ -103,7 +104,14 @@ def run_syscros_swarm(
         raise ValueError("issue_key is required")
 
     ctx: Dict[str, Any] = {
-        "inputs": {"issue_key": key, "limit": int(cfg.limit), "logs_file": logs_file, "domain": domain, "os": os_name},
+        "inputs": {
+            "issue_key": key,
+            "limit": int(cfg.limit),
+            "logs_file": logs_file,
+            "logs_text": (str(logs_text) if isinstance(logs_text, str) else None),
+            "domain": domain,
+            "os": os_name,
+        },
         "steps": {},
     }
 
@@ -113,12 +121,20 @@ def run_syscros_swarm(
         return issue
 
     def agent_logs_signals() -> Optional[Dict[str, Any]]:
-        if not logs_file:
+        # Web/UI can pass logs as text. CLI can pass logs_file.
+        if isinstance(logs_text, str) and logs_text.strip():
+            raw = logs_text
+            # Keep tail small and stable.
+            tail = "\n".join(raw.splitlines()[-4000:]).rstrip() + "\n"
+            signals = log_tools.extract_error_signals(ctx=ctx, text=tail)
+            signals["logs_tail"] = "\n".join(tail.splitlines()[-400:]).rstrip() + "\n"
+        elif logs_file:
+            loaded = log_tools.load_logs(ctx=ctx, path=str(logs_file))
+            signals = log_tools.extract_error_signals(ctx=ctx, input_data=loaded)
+            # Keep a short tail for prompting/inspection
+            signals["logs_tail"] = str(loaded.get("tail") or "")
+        else:
             return None
-        loaded = log_tools.load_logs(ctx=ctx, path=str(logs_file))
-        signals = log_tools.extract_error_signals(ctx=ctx, input_data=loaded)
-        # Keep a short tail for prompting/inspection
-        signals["logs_tail"] = str(loaded.get("tail") or "")
         ctx["steps"]["log_signals"] = signals
         return signals
 
@@ -257,6 +273,7 @@ def run_syscros_swarm(
                     "domain": domain,
                     "os": os_name,
                     "logs_file": logs_file,
+                    "has_logs_text": bool(isinstance(logs_text, str) and logs_text.strip()),
                     "log_fingerprint": (log_signals or {}).get("fingerprint") if isinstance(log_signals, dict) else None,
                 },
                 report=report,

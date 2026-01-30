@@ -12,7 +12,14 @@ from app.services.embeddings import generate_embedding
 from app.integrations.jira.client import JiraService, build_embedding_text, extract_issue_fields
 from app.models.jira import JiraIssue, JiraEmbedding
 from app.schemas.debug import DebugRequest, DebugStartResponse, DebugStatusResponse
-from app.schemas.jira import JiraSyncRequest, JiraSyncResponse, JiraIntakeRequest, JiraIntakeResponse
+from app.schemas.jira import (
+    JiraSyncRequest,
+    JiraSyncResponse,
+    JiraIntakeRequest,
+    JiraIntakeResponse,
+    JiraSummarizeRequest,
+    JiraSummarizeResponse,
+)
 from app.schemas.search import QueryRequest, SearchResponse, JiraSearchResult
 from app.schemas.snippets import SnippetSaveRequest, SnippetSaveResponse, SnippetListResponse
 
@@ -312,6 +319,36 @@ async def jira_intake(request: JiraIntakeRequest):
         logs=request.logs,
     )
     return {"issue_key": str(out.get("issue_key") or request.issue_key), "embedded": bool(out.get("embedded"))}
+
+
+@app.post("/jira/summarize", response_model=JiraSummarizeResponse)
+async def jira_summarize(request: JiraSummarizeRequest):
+    """
+    Fetch + summarize an existing issue from the local DB (jira_issues/jira_embeddings).
+
+    Returns a single `report + analysis` output for the UI.
+    """
+    from app.agents.swarm import SwarmConfig, run_syscros_swarm
+
+    out = run_syscros_swarm(
+        issue_key=request.issue_key,
+        logs_text=request.logs,
+        domain=request.domain,
+        os_name=request.os,
+        save_run=bool(request.save_run),
+        config=SwarmConfig(
+            limit=int(request.limit),
+            min_local_score=float(request.min_local_score),
+            external_knowledge=bool(request.external_knowledge),
+            external_max_results=int(request.external_max_results),
+        ),
+    )
+    return {
+        "issue_key": str(request.issue_key),
+        "report": str(out.get("report") or ""),
+        "analysis": str(out.get("analysis") or ""),
+        "saved_run": out.get("saved_run"),
+    }
 
 
 @app.post("/snippets", response_model=SnippetSaveResponse)
