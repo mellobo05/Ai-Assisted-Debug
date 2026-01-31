@@ -51,6 +51,20 @@ npm run dev
 
 Open the Vite URL shown in the terminal.
 
+### UI: new JIRA intake + fetch/summarize
+
+The frontend now supports two “minimal” flows:
+
+1) **Add new JIRA with logs** (offline intake)
+- Stores a user-provided issue into `jira_issues` + `jira_embeddings`
+- You can paste logs or upload a `.txt/.log` file (it’s read client-side and sent as text)
+- Backend endpoint: `POST /jira/intake`
+
+2) **Fetch & summarize existing JIRA**
+- Reads the issue from local Postgres and returns a combined **report + analysis**
+- You can optionally attach logs (paste or upload) to influence the RCA + fix suggestions
+- Backend endpoint: `POST /jira/summarize`
+
 ### Using the UI to retrieve similar JIRA issues
 1) Start **backend** + **frontend**
 2) In the UI, use **JIRA Similarity Search**
@@ -75,6 +89,12 @@ Disable analysis (summary + similar issues only):
 
 ```powershell
 python adag.py --prompt "Fetch and summarize: SYSCROS-123559" --no-analysis
+```
+
+Run the swarm (includes fix/logging suggestions):
+
+```powershell
+python adag.py --prompt "Fetch and summarize: SYSCROS-123559" --use-swarm --domain media --save_trace
 ```
 
 ### Run YAML workflows (offline-friendly)
