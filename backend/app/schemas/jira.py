@@ -114,6 +114,7 @@ class JiraSummarizeRequest(APIModel):
     min_local_score: float = Field(default=0.62, ge=0.0, le=1.0)
     external_max_results: int = Field(default=5, ge=1, le=10)
     save_run: bool = False
+    analysis_mode: str = Field(default="async", description="async|sync|skip")
 
     @field_validator("issue_key", mode="before")
     @classmethod
@@ -140,4 +141,6 @@ class JiraSummarizeResponse(APIModel):
     report: str
     analysis: str
     saved_run: dict | None = None
+    analysis_status: str | None = None  # PROCESSING|COMPLETED|SKIPPED|ERROR
+    job_id: str | None = None
 

@@ -25,6 +25,9 @@ from app.schemas.snippets import SnippetSaveRequest, SnippetSaveResponse, Snippe
 
 app = FastAPI(title="AI Assisted Debugger")
 
+# In-memory summarize jobs (kept simple; good enough for local dev).
+_JIRA_SUMMARIZE_JOBS: dict[str, dict] = {}
+
 # Warm up embedding provider on startup to avoid first-request latency (esp. SBERT).
 @app.on_event("startup")
 async def _warmup_embeddings() -> None:
@@ -328,26 +331,144 @@ async def jira_summarize(request: JiraSummarizeRequest):
 
     Returns a single `report + analysis` output for the UI.
     """
+    import uuid
+
     from app.agents.swarm import SwarmConfig, run_syscros_swarm
 
-    out = run_syscros_swarm(
+    mode = (request.analysis_mode or "async").strip().lower()
+    if mode not in {"async", "sync", "skip"}:
+        mode = "async"
+
+    cfg = SwarmConfig(
+        limit=int(request.limit),
+        min_local_score=float(request.min_local_score),
+        external_knowledge=bool(request.external_knowledge),
+        external_max_results=int(request.external_max_results),
+    )
+
+    # 1) Always compute report fast (skip LLM)
+    out_report = run_syscros_swarm(
         issue_key=request.issue_key,
         logs_text=request.logs,
         domain=request.domain,
         os_name=request.os,
-        save_run=bool(request.save_run),
-        config=SwarmConfig(
-            limit=int(request.limit),
-            min_local_score=float(request.min_local_score),
-            external_knowledge=bool(request.external_knowledge),
-            external_max_results=int(request.external_max_results),
-        ),
+        save_run=False,
+        do_analysis=False,
+        config=cfg,
     )
+    report = str(out_report.get("report") or "")
+
+    if mode == "skip":
+        return {
+            "issue_key": str(request.issue_key),
+            "report": report,
+            "analysis": "",
+            "saved_run": None,
+            "analysis_status": "SKIPPED",
+            "job_id": None,
+        }
+
+    if mode == "sync":
+        out_full = run_syscros_swarm(
+            issue_key=request.issue_key,
+            logs_text=request.logs,
+            domain=request.domain,
+            os_name=request.os,
+            save_run=bool(request.save_run),
+            do_analysis=True,
+            config=cfg,
+        )
+        return {
+            "issue_key": str(request.issue_key),
+            "report": str(out_full.get("report") or report),
+            "analysis": str(out_full.get("analysis") or ""),
+            "saved_run": out_full.get("saved_run"),
+            "analysis_status": "COMPLETED",
+            "job_id": None,
+        }
+
+    # mode == async: spawn background job for analysis
+    job_id = uuid.uuid4().hex
+    _JIRA_SUMMARIZE_JOBS[job_id] = {
+        "status": "PROCESSING",
+        "issue_key": str(request.issue_key),
+        "report": report,
+        "analysis": "",
+        "error": None,
+        "saved_run": None,
+    }
+
+    async def _run_analysis_job() -> None:
+        try:
+            # Run heavy work in threadpool (avoid blocking event loop)
+            loop = asyncio.get_event_loop()
+
+            def _do_work():
+                return run_syscros_swarm(
+                    issue_key=request.issue_key,
+                    logs_text=request.logs,
+                    domain=request.domain,
+                    os_name=request.os,
+                    save_run=bool(request.save_run),
+                    do_analysis=True,
+                    config=cfg,
+                )
+
+            out_full = await loop.run_in_executor(None, _do_work)
+            _JIRA_SUMMARIZE_JOBS[job_id] = {
+                "status": "COMPLETED",
+                "issue_key": str(request.issue_key),
+                "report": str(out_full.get("report") or report),
+                "analysis": str(out_full.get("analysis") or ""),
+                "error": None,
+                "saved_run": out_full.get("saved_run"),
+            }
+        except Exception as e:
+            _JIRA_SUMMARIZE_JOBS[job_id] = {
+                "status": "ERROR",
+                "issue_key": str(request.issue_key),
+                "report": report,
+                "analysis": "",
+                "error": f"{type(e).__name__}: {str(e).strip()}" if str(e).strip() else type(e).__name__,
+                "saved_run": None,
+            }
+
+    asyncio.create_task(_run_analysis_job())
+
     return {
         "issue_key": str(request.issue_key),
-        "report": str(out.get("report") or ""),
-        "analysis": str(out.get("analysis") or ""),
-        "saved_run": out.get("saved_run"),
+        "report": report,
+        "analysis": "",
+        "saved_run": None,
+        "analysis_status": "PROCESSING",
+        "job_id": job_id,
+    }
+
+
+@app.get("/jira/summarize/job/{job_id}", response_model=JiraSummarizeResponse)
+async def jira_summarize_job(job_id: str):
+    job = _JIRA_SUMMARIZE_JOBS.get(str(job_id).strip())
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    status = str(job.get("status") or "PROCESSING")
+    if status == "ERROR":
+        # Keep response model stable; include error text inside analysis.
+        err = str(job.get("error") or "Unknown error")
+        return {
+            "issue_key": str(job.get("issue_key") or ""),
+            "report": str(job.get("report") or ""),
+            "analysis": f"Analysis: failed ({err})\n",
+            "saved_run": job.get("saved_run"),
+            "analysis_status": "ERROR",
+            "job_id": str(job_id),
+        }
+    return {
+        "issue_key": str(job.get("issue_key") or ""),
+        "report": str(job.get("report") or ""),
+        "analysis": str(job.get("analysis") or ""),
+        "saved_run": job.get("saved_run"),
+        "analysis_status": status,
+        "job_id": str(job_id),
     }
 
 

@@ -72,6 +72,8 @@ export type JiraSummarizeResponse = {
   report: string;
   analysis: string;
   saved_run?: any;
+  analysis_status?: string | null;
+  job_id?: string | null;
 };
 
 const DEFAULT_API_BASE = "http://127.0.0.1:8000";
@@ -172,6 +174,7 @@ export async function jiraSummarize(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...payload,
+        analysis_mode: "async",
         limit: payload.limit ?? 5,
         external_knowledge: payload.external_knowledge ?? false,
         min_local_score: payload.min_local_score ?? 0.62,
@@ -180,6 +183,17 @@ export async function jiraSummarize(
       })
     },
     30000
+  );
+}
+
+export async function getJiraSummarizeJob(jobId: string): Promise<JiraSummarizeResponse> {
+  return await fetchJsonWithTimeout<JiraSummarizeResponse>(
+    `${API_BASE}/jira/summarize/job/${encodeURIComponent(jobId)}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    },
+    15000
   );
 }
 

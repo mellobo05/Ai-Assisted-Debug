@@ -78,6 +78,7 @@ def run_syscros_swarm(
     domain: Optional[str] = None,
     os_name: Optional[str] = None,
     save_run: bool = False,
+    do_analysis: bool = True,
     config: Optional[SwarmConfig] = None,
 ) -> Dict[str, Any]:
     """
@@ -219,47 +220,49 @@ def run_syscros_swarm(
     if isinstance(log_signals, dict):
         logs_tail = "\n".join(str(log_signals.get("logs_tail") or "").splitlines()[-400:]).rstrip() + "\n"
 
-    analysis = llm_tools.subagent(
-        ctx=ctx,
-        prompts=[
-            "Start your output with the provided Sources lines (do not omit them).",
-            "You are an expert debugging assistant. Produce a root-cause oriented summary for the target issue.",
-            f"Target issue key: {key}. Use the target issue fields, log signals, and the similar issues list as evidence. Do not invent details.",
-            "If logs/signatures are provided, treat them as the primary evidence for what failed and why.",
-            "If external references are provided, use them only as supporting context and clearly label them as external (not confirmed).",
-            "If this is a media/codec issue, include a 'Media stack checks' section and reference the curated media-driver release notes link when relevant.",
-            "Output (concise):",
-            "Probable root cause (ranked hypotheses + confidence 0-100)",
-            "Evidence (quotes/snippets from issue/comments)",
-            "Log evidence (specific error lines / exception names / error codes)",
-            "External references (titles only)",
-            "Logging improvements (specific log lines to add + where)",
-            "Suggested code fixes",
-            "Suggested patches (if possible): provide unified diffs with file paths; if you lack code context, say which files to inspect instead of inventing APIs.",
-            "Next debugging steps (5-8)",
-            "Suggested fix/mitigation",
-        ],
-        input_data={
-            "sources_header": sources_header.strip(),
-            "issue": issue,
-            "similar": similar,
-            "log_signals": log_signals,
-            "logs_tail": logs_tail if logs_tail else None,
-            "external_refs": external_refs,
-            "curated_refs": curated_refs or None,
-            "code_snippets": snippets or None,
-            "domain": domain,
-            "os": os_name,
-            "local_top_similarity": float(_top_similarity(similar)),
-            "min_local_score": float(cfg.min_local_score),
-        },
-    )
-    if isinstance(analysis, str) and analysis.strip() and not analysis.lstrip().startswith("Sources:"):
-        analysis = sources_header + analysis.lstrip()
-    ctx["steps"]["analysis"] = analysis
+    analysis = ""
+    if bool(do_analysis):
+        analysis = llm_tools.subagent(
+            ctx=ctx,
+            prompts=[
+                "Start your output with the provided Sources lines (do not omit them).",
+                "You are an expert debugging assistant. Produce a root-cause oriented summary for the target issue.",
+                f"Target issue key: {key}. Use the target issue fields, log signals, and the similar issues list as evidence. Do not invent details.",
+                "If logs/signatures are provided, treat them as the primary evidence for what failed and why.",
+                "If external references are provided, use them only as supporting context and clearly label them as external (not confirmed).",
+                "If this is a media/codec issue, include a 'Media stack checks' section and reference the curated media-driver release notes link when relevant.",
+                "Output (concise):",
+                "Probable root cause (ranked hypotheses + confidence 0-100)",
+                "Evidence (quotes/snippets from issue/comments)",
+                "Log evidence (specific error lines / exception names / error codes)",
+                "External references (titles only)",
+                "Logging improvements (specific log lines to add + where)",
+                "Suggested code fixes",
+                "Suggested patches (if possible): provide unified diffs with file paths; if you lack code context, say which files to inspect instead of inventing APIs.",
+                "Next debugging steps (5-8)",
+                "Suggested fix/mitigation",
+            ],
+            input_data={
+                "sources_header": sources_header.strip(),
+                "issue": issue,
+                "similar": similar,
+                "log_signals": log_signals,
+                "logs_tail": logs_tail if logs_tail else None,
+                "external_refs": external_refs,
+                "curated_refs": curated_refs or None,
+                "code_snippets": snippets or None,
+                "domain": domain,
+                "os": os_name,
+                "local_top_similarity": float(_top_similarity(similar)),
+                "min_local_score": float(cfg.min_local_score),
+            },
+        )
+        if isinstance(analysis, str) and analysis.strip() and not analysis.lstrip().startswith("Sources:"):
+            analysis = sources_header + analysis.lstrip()
+        ctx["steps"]["analysis"] = analysis
 
     saved: Optional[Dict[str, Any]] = None
-    if bool(save_run):
+    if bool(save_run) and bool(do_analysis):
         try:
             saved = jira_tools.save_analysis_run(
                 ctx=ctx,

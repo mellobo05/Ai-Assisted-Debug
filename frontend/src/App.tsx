@@ -4,6 +4,7 @@ import {
   getDebugStatus,
   jiraIntake,
   jiraSummarize,
+  getJiraSummarizeJob,
   searchJira,
   startDebug,
   type DebugRequest,
@@ -201,6 +202,21 @@ export function App() {
         min_local_score: jiraSummMinScore
       });
       setJiraSummary(resp);
+
+      // If analysis is async, poll until completed (or timeout).
+      const jobId = resp.job_id;
+      const status = (resp.analysis_status || "").toUpperCase();
+      if (jobId && status === "PROCESSING") {
+        const startedAt = Date.now();
+        const maxWaitMs = 45000;
+        while (Date.now() - startedAt < maxWaitMs) {
+          await new Promise((r) => setTimeout(r, 1000));
+          const j = await getJiraSummarizeJob(jobId);
+          setJiraSummary(j);
+          const s = (j.analysis_status || "").toUpperCase();
+          if (s && s !== "PROCESSING") break;
+        }
+      }
     } catch (err: any) {
       setJiraSummError(err?.message ?? String(err));
     } finally {
