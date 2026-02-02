@@ -1,4 +1,4 @@
-### AI Assisted Debug (JIRA + RAG + Agents)
+### AI Assisted Debug
 
 AI-powered **Auto Debug Assistant** that uses your locally ingested JIRA data (Postgres) plus embeddings for **similar issue retrieval** and **root-cause oriented summaries**.
 
