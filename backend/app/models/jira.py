@@ -24,6 +24,8 @@ class JiraIssue(Base):
     labels = Column(JSON, nullable=True)  # list[str]
     components = Column(JSON, nullable=True)  # list[str]
     comments = Column(JSON, nullable=True)  # list[{"id","created","displayName","body"}]
+    # Related issue keys discovered by similarity search (for faster access / UI hints)
+    related_issue_keys = Column(JSON, nullable=True)  # list[str]
 
     url = Column(String, nullable=True)
     raw = Column(JSON, nullable=False)

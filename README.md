@@ -51,19 +51,24 @@ npm run dev
 
 Open the Vite URL shown in the terminal.
 
-### UI: new JIRA intake + fetch/summarize
+### UI: one-step “JIRA Analyze” pipeline
 
-The frontend now supports two “minimal” flows:
+The UI now uses **one input form** to handle the full pipeline:
 
-1) **Add new JIRA with logs** (offline intake)
-- Stores a user-provided issue into `jira_issues` + `jira_embeddings`
-- You can paste logs or upload a `.txt/.log` file (it’s read client-side and sent as text)
-- Backend endpoint: `POST /jira/intake`
+- Inputs: **JIRA ID**, **JIRA summary**, **logs**, **domain**, **OS**, and optional notes
+- Backend endpoint: `POST /jira/analyze`
 
-2) **Fetch & summarize existing JIRA**
-- Reads the issue from local Postgres and returns a combined **report + analysis**
-- You can optionally attach logs (paste or upload) to influence the RCA + fix suggestions
-- Backend endpoint: `POST /jira/summarize`
+Behavior:
+- If **same JIRA ID + same summary** already exists and a previous analysis run is stored, the backend returns a **cached RCA** immediately.
+- Otherwise it **upserts** the issue into `jira_issues` + `jira_embeddings`, computes a **fast report**, and then runs the LLM **asynchronously** (UI polls until analysis completes).
+- Related issues:
+  - Preferred: **live JIRA** JQL `text ~` search with iterative query expansion (requires `JIRA_BASE_URL` + credentials)
+  - Fallback: local DB embedding similarity
+  - If related issues are found, it stores `jira_issues.related_issue_keys` for faster access later.
+
+Legacy endpoints still exist:
+- `POST /jira/intake` (store + embed only)
+- `POST /jira/summarize` (summarize an existing DB issue)
 
 ### Using the UI to retrieve similar JIRA issues
 1) Start **backend** + **frontend**

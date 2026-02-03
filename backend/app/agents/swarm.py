@@ -76,7 +76,11 @@ def run_syscros_swarm(
     logs_file: Optional[str] = None,
     logs_text: Optional[str] = None,
     domain: Optional[str] = None,
+    component: Optional[str] = None,
     os_name: Optional[str] = None,
+    related_issue_keys: Optional[List[str]] = None,
+    related_source: Optional[str] = None,
+    analysis_idempotency_key: Optional[str] = None,
     save_run: bool = False,
     do_analysis: bool = True,
     config: Optional[SwarmConfig] = None,
@@ -111,7 +115,10 @@ def run_syscros_swarm(
             "logs_file": logs_file,
             "logs_text": (str(logs_text) if isinstance(logs_text, str) else None),
             "domain": domain,
+            "component": component,
             "os": os_name,
+            "related_issue_keys": related_issue_keys,
+            "related_source": related_source,
         },
         "steps": {},
     }
@@ -153,11 +160,48 @@ def run_syscros_swarm(
                 sig_q = str(log_signals.get("query_text") or "").strip()
                 if sig_q:
                     query_text = (query_text + "\n\nLOG_ERROR_SIGNATURES:\n" + sig_q).strip()
+
+            include_issue_keys: Optional[List[str]] = None
+            # Component-first prefilter (highest precision). If it yields too small a pool,
+            # fall back to domain prefilter, then global similarity.
+            if component:
+                try:
+                    pre = jira_tools.prefilter_issue_keys_for_component(
+                        ctx=ctx,
+                        component=component,
+                        max_candidates=5000,
+                    )
+                    ctx["steps"]["component_prefilter"] = pre
+                    keys = pre.get("issue_keys") if isinstance(pre, dict) else None
+                    if isinstance(keys, list):
+                        # Only use prefilter if it yields a reasonable pool.
+                        # (Too small => fallback to global similarity to avoid empty results.)
+                        if len(keys) >= 10:
+                            include_issue_keys = [str(k).strip().upper() for k in keys if str(k).strip()]
+                except Exception:
+                    include_issue_keys = None
+            if (include_issue_keys is None) and domain:
+                try:
+                    pre = jira_tools.prefilter_issue_keys_for_domain(
+                        ctx=ctx,
+                        domain=domain,
+                        query_text=query_text,
+                        max_candidates=2000,
+                    )
+                    ctx["steps"]["domain_prefilter"] = pre
+                    keys = pre.get("issue_keys") if isinstance(pre, dict) else None
+                    if isinstance(keys, list):
+                        if len(keys) >= 10:
+                            include_issue_keys = [str(k).strip().upper() for k in keys if str(k).strip()]
+                except Exception:
+                    include_issue_keys = None
+
             similar = jira_tools.search_similar_jira(
                 ctx=ctx,
                 query=query_text,
                 limit=int(cfg.limit),
                 exclude_issue_keys=[key],
+                include_issue_keys=include_issue_keys,
             )
             ctx["steps"]["similar"] = similar
             return similar
@@ -251,6 +295,8 @@ def run_syscros_swarm(
                 "external_refs": external_refs,
                 "curated_refs": curated_refs or None,
                 "code_snippets": snippets or None,
+                "related_issue_keys": related_issue_keys or None,
+                "related_source": related_source,
                 "domain": domain,
                 "os": os_name,
                 "local_top_similarity": float(_top_similarity(similar)),
@@ -267,6 +313,7 @@ def run_syscros_swarm(
             saved = jira_tools.save_analysis_run(
                 ctx=ctx,
                 issue_key=key,
+                idempotency_key=analysis_idempotency_key,
                 domain=domain,
                 os=os_name,
                 logs_fingerprint=(str((log_signals or {}).get("fingerprint") or "").strip() or None)

@@ -67,6 +67,7 @@ class JiraIntakeRequest(APIModel):
     summary: str = Field(..., min_length=1, max_length=300)
 
     domain: str | None = Field(default=None, max_length=80)
+    component: str | None = Field(default=None, max_length=120)
     os: str | None = Field(default=None, max_length=80)
     description: str | None = Field(default=None, max_length=200_000)
     logs: str | None = Field(default=None, max_length=200_000)
@@ -80,6 +81,7 @@ class JiraIntakeRequest(APIModel):
         return s
 
     _strip_domain = field_validator("domain", mode="before")(_strip_or_none)
+    _strip_component = field_validator("component", mode="before")(_strip_or_none)
     _strip_os = field_validator("os", mode="before")(_strip_or_none)
     _strip_description = field_validator("description", mode="before")(_strip_or_none)
     _strip_logs = field_validator("logs", mode="before")(_strip_or_none)
@@ -106,6 +108,7 @@ class JiraSummarizeRequest(APIModel):
 
     issue_key: str = Field(..., min_length=3, max_length=50)
     domain: str | None = Field(default=None, max_length=80)
+    component: str | None = Field(default=None, max_length=120)
     os: str | None = Field(default=None, max_length=80)
     logs: str | None = Field(default=None, max_length=200_000)
 
@@ -125,6 +128,7 @@ class JiraSummarizeRequest(APIModel):
         return s
 
     _strip_domain = field_validator("domain", mode="before")(_strip_or_none)
+    _strip_component = field_validator("component", mode="before")(_strip_or_none)
     _strip_os = field_validator("os", mode="before")(_strip_or_none)
     _strip_logs = field_validator("logs", mode="before")(_strip_or_none)
 
@@ -143,4 +147,68 @@ class JiraSummarizeResponse(APIModel):
     saved_run: dict | None = None
     analysis_status: str | None = None  # PROCESSING|COMPLETED|SKIPPED|ERROR
     job_id: str | None = None
+
+
+class JiraAnalyzeRequest(APIModel):
+    """
+    Single-input pipeline for the UI.
+
+    Inputs:
+      - issue_key + summary (+ optional domain/os/logs/notes)
+
+    Behavior:
+      1) If issue_key exists AND summary matches AND a previous analysis exists -> return cached analysis
+      2) Else upsert the issue (store + embed)
+      3) Compute report fast (no LLM)
+      4) Optionally run LLM analysis async/sync/skip
+      5) Track related_issue_keys for faster access
+    """
+
+    issue_key: str = Field(..., min_length=3, max_length=50)
+    summary: str = Field(..., min_length=1, max_length=300)
+    domain: str | None = Field(default=None, max_length=80)
+    component: str | None = Field(default=None, max_length=120)
+    os: str | None = Field(default=None, max_length=80)
+    logs: str | None = Field(default=None, max_length=200_000)
+    notes: str | None = Field(default=None, max_length=50_000)
+
+    limit: int = Field(default=5, ge=1, le=20)
+    external_knowledge: bool = False
+    min_local_score: float = Field(default=0.62, ge=0.0, le=1.0)
+    external_max_results: int = Field(default=5, ge=1, le=10)
+    save_run: bool = True
+    analysis_mode: str = Field(default="async", description="async|sync|skip")
+
+    @field_validator("issue_key", mode="before")
+    @classmethod
+    def _normalize_issue_key(cls, v: Any):
+        if v is None:
+            return v
+        return str(v).strip().upper()
+
+    _strip_summary = field_validator("summary", mode="before")(_strip_or_none)
+    _strip_domain = field_validator("domain", mode="before")(_strip_or_none)
+    _strip_component = field_validator("component", mode="before")(_strip_or_none)
+    _strip_os = field_validator("os", mode="before")(_strip_or_none)
+    _strip_logs = field_validator("logs", mode="before")(_strip_or_none)
+    _strip_notes = field_validator("notes", mode="before")(_strip_or_none)
+
+    @field_validator("issue_key")
+    @classmethod
+    def _validate_issue_key(cls, v: str):
+        if not JIRA_ISSUE_KEY_RE.match(v or ""):
+            raise ValueError("Invalid JIRA issue key format")
+        return v
+
+
+class JiraAnalyzeResponse(APIModel):
+    issue_key: str
+    summary: str
+    report: str
+    analysis: str
+    analysis_status: str | None = None  # PROCESSING|COMPLETED|SKIPPED|ERROR|CACHED
+    job_id: str | None = None
+    related_issue_keys: list[str] | None = None
+    cache_hit: bool = False
+    saved_run: dict | None = None
 

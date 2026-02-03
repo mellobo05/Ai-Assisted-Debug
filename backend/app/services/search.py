@@ -110,6 +110,7 @@ def find_similar_jira(
     query_embedding: List[float],
     limit: int = 3,
     exclude_issue_keys: Optional[Iterable[str]] = None,
+    include_issue_keys: Optional[Iterable[str]] = None,
 ) -> List[Dict]:
     """
     Find similar JIRA issues based on query embedding using cosine similarity.
@@ -117,7 +118,14 @@ def find_similar_jira(
     """
     db = SessionLocal()
     try:
-        all_embeddings = db.query(JiraEmbedding.issue_key, JiraEmbedding.embedding).all()
+        q = db.query(JiraEmbedding.issue_key, JiraEmbedding.embedding)
+        include: Set[str] = set()
+        if include_issue_keys:
+            include = {str(k).strip() for k in include_issue_keys if str(k).strip()}
+            if include:
+                q = q.filter(JiraEmbedding.issue_key.in_(list(include)))
+
+        all_embeddings = q.all()
         if not all_embeddings:
             return []
 

@@ -42,6 +42,8 @@ def build_default_tool_registry() -> Dict[str, ToolFn]:
         "web.search": external_knowledge_tools.web_search,
         # Persist analysis output (optional)
         "jira.save_analysis": jira_tools.save_analysis_run,
+        # Live JIRA related-issue search (JQL text~ + expansions)
+        "jira.related_jql": jira_tools.find_related_issue_keys_using_jira_text_search,
         # Store/retrieve user-pasted code snippets for future runs
         "snippet.save": snippet_tools.save_snippet,
         "snippet.list": snippet_tools.list_snippets,

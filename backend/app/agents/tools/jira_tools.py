@@ -11,6 +11,346 @@ from app.services.search import find_similar_jira
 from app.schemas.common import JIRA_ISSUE_KEY_RE
 
 
+def _tokenize_simple(text: str) -> List[str]:
+    import re
+
+    t = (text or "").lower()
+    # words + simple tokens (keep dp/hdmi)
+    toks = re.findall(r"[a-z0-9][a-z0-9\-\_\.]{1,30}", t)
+    return [x for x in toks if len(x) >= 2]
+
+
+def _domain_keywords() -> Dict[str, List[str]]:
+    # Lightweight mapping: used for component match + weak supervision for ML.
+    return {
+        "display": [
+            "display",
+            "graphics",
+            "drm",
+            "kms",
+            "i915",
+            "xe",
+            "wayland",
+            "x11",
+            "xorg",
+            "compositor",
+            "monitor",
+            "external display",
+            "dock",
+            "docked",
+            "dp",
+            "displayport",
+            "hdmi",
+            "edp",
+        ],
+        "media": ["media", "video", "codec", "decoder", "encode", "hevc", "h.265", "av1", "vaapi", "libva", "gstreamer"],
+        "audio": ["audio", "alsa", "pulseaudio", "pipewire", "speaker", "microphone", "snd"],
+        "network": ["network", "wifi", "wlan", "bluetooth", "bt", "ethernet", "iwlwifi", "rtl", "mt7921"],
+        "storage": ["storage", "nvme", "ssd", "mmc", "emmc", "ufs", "sata", "ext4", "btrfs"],
+        "power": ["power", "suspend", "resume", "s0ix", "hibernate", "battery", "thermal", "fan"],
+        "input": ["touch", "trackpad", "keyboard", "hid", "i2c", "wacom"],
+    }
+
+
+def _normalize_domain(domain: Optional[str]) -> Optional[str]:
+    d = str(domain or "").strip().lower()
+    if not d:
+        return None
+    # common aliases
+    if d in {"disp", "gfx", "graphic", "graphics"}:
+        return "display"
+    if d in {"net", "networking", "wifi"}:
+        return "network"
+    if d in {"vid", "video", "codec"}:
+        return "media"
+    return d
+
+
+def resolve_component_from_db(*, ctx: Dict[str, Any], component: Optional[str]) -> Optional[str]:
+    """
+    Best-effort: map a user-provided component string to the closest known DB component name.
+    """
+    c = str(component or "").strip()
+    if not c:
+        return None
+    c_low = c.lower()
+
+    db = SessionLocal()
+    try:
+        rows = db.query(JiraIssue.components).all()
+    finally:
+        db.close()
+
+    known: List[str] = []
+    seen = set()
+    for (comps,) in rows:
+        if not isinstance(comps, list):
+            continue
+        for x in comps:
+            s = str(x or "").strip()
+            if not s:
+                continue
+            k = s.lower()
+            if k in seen:
+                continue
+            seen.add(k)
+            known.append(s)
+
+    if not known:
+        return c
+
+    # 1) exact case-insensitive match
+    for k in known:
+        if k.lower() == c_low:
+            return k
+
+    # 2) substring match (prefer shortest containing string)
+    subs = [k for k in known if c_low in k.lower() or k.lower() in c_low]
+    if subs:
+        subs.sort(key=lambda s: len(s))
+        return subs[0]
+
+    # 3) token overlap score
+    c_toks = set(_tokenize_simple(c))
+    if not c_toks:
+        return c
+    best = None
+    best_score = 0.0
+    for k in known:
+        kt = set(_tokenize_simple(k))
+        if not kt:
+            continue
+        inter = len(c_toks & kt)
+        union = len(c_toks | kt) or 1
+        score = inter / union
+        if score > best_score:
+            best_score = score
+            best = k
+    if best and best_score >= 0.25:
+        return best
+    return c
+
+
+def prefilter_issue_keys_for_component(
+    *,
+    ctx: Dict[str, Any],
+    component: Optional[str],
+    max_candidates: int = 5000,
+) -> Dict[str, Any]:
+    """
+    Component-first filter. This is the highest precision filter when the user provides a component.
+    """
+    c = str(component or "").strip()
+    if not c:
+        return {"component": None, "issue_keys": None, "reason": "no_component"}
+
+    resolved = resolve_component_from_db(ctx=ctx, component=c)
+    resolved_low = str(resolved or c).strip().lower()
+
+    db = SessionLocal()
+    try:
+        rows = db.query(JiraIssue.issue_key, JiraIssue.components, JiraIssue.labels).limit(int(max_candidates)).all()
+    finally:
+        db.close()
+
+    hits: List[str] = []
+    for issue_key, components, labels in rows:
+        k = str(issue_key or "").strip().upper()
+        if not k:
+            continue
+        comps = " ".join([str(x) for x in (components or [])]).lower() if isinstance(components, list) else ""
+        labs = " ".join([str(x) for x in (labels or [])]).lower() if isinstance(labels, list) else ""
+        text = (comps + " " + labs).strip()
+        if not text:
+            continue
+        if resolved_low in text:
+            hits.append(k)
+
+    # Dedupe preserve order
+    out: List[str] = []
+    seen = set()
+    for k in hits:
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(k)
+
+    return {
+        "component": c,
+        "resolved_component": resolved,
+        "issue_keys": out or None,
+        "reason": "component_match",
+        "hits": len(out),
+    }
+
+
+def prefilter_issue_keys_for_domain(
+    *,
+    ctx: Dict[str, Any],
+    domain: Optional[str],
+    query_text: str,
+    max_candidates: int = 1000,
+) -> Dict[str, Any]:
+    """
+    ML-ish prefilter to narrow the candidate pool *before* running embedding similarity.
+
+    - Uses DB components/labels as weak supervision to train a simple Multinomial Naive Bayes classifier.
+    - Also uses direct component keyword matching for high precision.
+    """
+    d = _normalize_domain(domain)
+    if not d:
+        return {"domain": None, "issue_keys": None, "reason": "no_domain"}
+
+    kw = _domain_keywords().get(d)
+    if not kw:
+        return {"domain": d, "issue_keys": None, "reason": "unknown_domain"}
+
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(JiraIssue.issue_key, JiraIssue.summary, JiraIssue.description, JiraIssue.components, JiraIssue.labels)
+            .limit(int(max_candidates))
+            .all()
+        )
+    finally:
+        db.close()
+
+    items: List[Dict[str, Any]] = []
+    for issue_key, summary, description, components, labels in rows:
+        items.append(
+            {
+                "issue_key": str(issue_key or "").strip().upper(),
+                "summary": str(summary or ""),
+                "description": str(description or ""),
+                "components": components if isinstance(components, list) else [],
+                "labels": labels if isinstance(labels, list) else [],
+            }
+        )
+
+    def _match_components(it: Dict[str, Any]) -> bool:
+        comps = " ".join([str(x) for x in (it.get("components") or [])]).lower()
+        labs = " ".join([str(x) for x in (it.get("labels") or [])]).lower()
+        text = comps + " " + labs
+        return any(k in text for k in kw)
+
+    component_hits = [it["issue_key"] for it in items if it["issue_key"] and _match_components(it)]
+
+    # --- Train a tiny Naive Bayes classifier from weak labels (components -> domain) ---
+    domains = list(_domain_keywords().keys())
+    vocab: Dict[str, int] = {}
+    label_word_counts: Dict[str, Dict[int, int]] = {dd: {} for dd in domains}
+    label_totals: Dict[str, int] = {dd: 0 for dd in domains}
+    label_docs: Dict[str, int] = {dd: 0 for dd in domains}
+
+    def _infer_label(it: Dict[str, Any]) -> Optional[str]:
+        # weak label: choose first domain whose keywords hit components/labels.
+        comps = " ".join([str(x) for x in (it.get("components") or [])]).lower()
+        labs = " ".join([str(x) for x in (it.get("labels") or [])]).lower()
+        cl = (comps + " " + labs).strip()
+        for dd, kws in _domain_keywords().items():
+            if any(k in cl for k in kws):
+                return dd
+        return None
+
+    def _text_for(it: Dict[str, Any]) -> str:
+        return (str(it.get("summary") or "") + "\n" + str(it.get("description") or "")).strip()
+
+    # Build vocab + counts
+    for it in items:
+        lab = _infer_label(it)
+        if not lab:
+            continue
+        text = _text_for(it)
+        toks = _tokenize_simple(text)
+        if not toks:
+            continue
+        label_docs[lab] += 1
+        for tok in toks:
+            if tok not in vocab:
+                vocab[tok] = len(vocab)
+            tid = vocab[tok]
+            label_word_counts[lab][tid] = label_word_counts[lab].get(tid, 0) + 1
+            label_totals[lab] += 1
+
+    # If not enough training signal, just return component hits (still useful).
+    trained_docs = sum(label_docs.values())
+    if trained_docs < 10 or len(vocab) < 50:
+        keys = sorted(set(component_hits)) or None
+        return {
+            "domain": d,
+            "issue_keys": keys,
+            "reason": "weak_training_signal",
+            "component_hits": len(component_hits),
+            "trained_docs": trained_docs,
+        }
+
+    import math
+
+    # Priors with Laplace smoothing
+    alpha = 1.0
+    total_docs = float(trained_docs)
+    priors = {dd: math.log((label_docs[dd] + alpha) / (total_docs + alpha * len(domains))) for dd in domains}
+    V = float(len(vocab))
+
+    def _predict_domain(text: str) -> Dict[str, float]:
+        toks = _tokenize_simple(text)
+        if not toks:
+            return {dd: 0.0 for dd in domains}
+        # bag-of-words counts
+        counts: Dict[int, int] = {}
+        for tok in toks:
+            tid = vocab.get(tok)
+            if tid is None:
+                continue
+            counts[tid] = counts.get(tid, 0) + 1
+
+        scores: Dict[str, float] = {}
+        for dd in domains:
+            s = priors[dd]
+            denom = label_totals[dd] + alpha * V
+            wc = label_word_counts[dd]
+            for tid, c in counts.items():
+                num = wc.get(tid, 0) + alpha
+                s += c * math.log(num / denom)
+            scores[dd] = s
+
+        # softmax to probs
+        m = max(scores.values())
+        exps = {dd: math.exp(scores[dd] - m) for dd in domains}
+        Z = sum(exps.values()) or 1.0
+        return {dd: float(exps[dd] / Z) for dd in domains}
+
+    # Predict domain for each issue and filter
+    ml_hits: List[str] = []
+    for it in items:
+        k = it["issue_key"]
+        if not k:
+            continue
+        probs = _predict_domain(_text_for(it))
+        if probs.get(d, 0.0) >= 0.35:
+            ml_hits.append(k)
+
+    # Merge + stabilize order
+    merged: List[str] = []
+    seen = set()
+    for k in component_hits + ml_hits:
+        kk = str(k or "").strip().upper()
+        if not kk or kk in seen:
+            continue
+        seen.add(kk)
+        merged.append(kk)
+
+    return {
+        "domain": d,
+        "issue_keys": merged or None,
+        "reason": "component_and_ml",
+        "component_hits": len(component_hits),
+        "ml_hits": len(ml_hits),
+        "trained_docs": trained_docs,
+        "vocab": len(vocab),
+    }
+
+
 def get_issue_from_db(
     *,
     ctx: Dict[str, Any],
@@ -210,6 +550,7 @@ def save_analysis_run(
     *,
     ctx: Dict[str, Any],
     issue_key: str,
+    idempotency_key: Optional[str] = None,
     domain: Optional[str] = None,
     os: Optional[str] = None,
     logs_fingerprint: Optional[str] = None,
@@ -226,8 +567,20 @@ def save_analysis_run(
 
     db = SessionLocal()
     try:
+        idem = str(idempotency_key or "").strip() or None
+        if idem:
+            existing = (
+                db.query(JiraAnalysisRun)
+                .filter(JiraAnalysisRun.issue_key == key, JiraAnalysisRun.idempotency_key == idem)
+                .order_by(JiraAnalysisRun.created_at.desc())
+                .first()
+            )
+            if existing:
+                return {"id": str(existing.id), "issue_key": key, "saved": True, "idempotent": True}
+
         row = JiraAnalysisRun(
             issue_key=key,
+            idempotency_key=idem,
             domain=str(domain or "").strip() or None,
             os=str(os or "").strip() or None,
             logs_fingerprint=str(logs_fingerprint or "").strip() or None,
@@ -244,6 +597,154 @@ def save_analysis_run(
         raise
     finally:
         db.close()
+
+
+def find_related_issue_keys_using_jira_text_search(
+    *,
+    ctx: Dict[str, Any],
+    issue_key: str,
+    summary: str,
+    max_results: int = 10,
+    max_comments: int = 10,
+    project: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    JIRA-native related issue search using JQL `text ~` with iterative query expansions.
+
+    This matches the algorithm you described:
+      - pass1: title cleaned (strip bracket chars but keep inner tokens)
+      - pass2: platform removed (remove bracketed groups entirely)
+      - pass3: LLM-shortened variants
+      - pass4: LLM one-liner summaries used as queries
+
+    Returns:
+      {
+        "source": "jira_jql_text",
+        "queries": [ ... ],
+        "issue_keys": [ ... ],
+        "error": optional str
+      }
+    """
+    import json
+    import re
+
+    from app.agents.tools import llm_tools
+
+    key = str(issue_key or "").strip().upper()
+    if not key or not JIRA_ISSUE_KEY_RE.match(key):
+        raise ValueError(f"Invalid issue_key: {issue_key!r}")
+    title = str(summary or "").strip()
+    if not title:
+        raise ValueError("summary is required")
+
+    proj = (str(project or "").strip().upper() or None)
+    if not proj and "-" in key:
+        proj = key.split("-", 1)[0].strip().upper() or None
+
+    def _norm(s: str) -> str:
+        s = (s or "").strip()
+        s = re.sub(r"\s+", " ", s)
+        return s
+
+    def _strip_brackets_keep_tokens(s: str) -> str:
+        # "[MTL Rex][A2] Foo" -> "MTL Rex A2 Foo"
+        s = s.replace("[", " ").replace("]", " ")
+        return _norm(s)
+
+    def _remove_bracketed_groups(s: str) -> str:
+        # remove [...] blocks entirely
+        s2 = re.sub(r"\[[^\]]*\]", " ", s or "")
+        return _norm(s2)
+
+    def _jql_quote(s: str) -> str:
+        # Quote as a JQL string literal. Keep it simple: escape quotes/backslashes.
+        s = (s or "").replace("\\", "\\\\").replace('"', '\\"')
+        return f"\\\"{s}\\\""
+
+    def _make_jql(q: str) -> str:
+        q = _norm(q)
+        if not q:
+            return ""
+        # Keep queries short; JIRA text~ works better with concise phrases
+        if len(q) > 160:
+            q = q[:160].rstrip()
+        if proj:
+            return f'project = {proj} AND key != "{key}" AND text ~ "{_jql_quote(q)}" ORDER BY updated DESC'
+        return f'key != "{key}" AND text ~ "{_jql_quote(q)}" ORDER BY updated DESC'
+
+    # Pass 1/2 (deterministic)
+    q1 = _strip_brackets_keep_tokens(title)
+    q2 = _remove_bracketed_groups(title)
+
+    # Pass 3/4 (LLM expansions) – request JSON for robust parsing.
+    llm_out = llm_tools.subagent(
+        ctx=ctx,
+        prompts=[
+            "You generate JIRA full-text search query variants.",
+            "Return STRICT JSON with keys: shortened_titles (list[str]), one_liners (list[str]).",
+            "Each item must be <= 12 words, no quotes, no markdown.",
+            "Do not include the JIRA key itself.",
+        ],
+        input_data={"summary": title},
+        temperature=0.0,
+    )
+
+    shortened: list[str] = []
+    one_liners: list[str] = []
+    try:
+        data = json.loads(str(llm_out or "").strip() or "{}")
+        if isinstance(data, dict):
+            if isinstance(data.get("shortened_titles"), list):
+                shortened = [str(x).strip() for x in data.get("shortened_titles") if str(x).strip()]
+            if isinstance(data.get("one_liners"), list):
+                one_liners = [str(x).strip() for x in data.get("one_liners") if str(x).strip()]
+    except Exception:
+        # Offline/LLM-disabled fallback: simple variants.
+        shortened = []
+        one_liners = []
+
+    queries: list[str] = []
+    for q in [q1, q2] + shortened[:5] + one_liners[:5]:
+        q = _norm(q)
+        if not q:
+            continue
+        if q.lower() == title.lower():
+            pass
+        if q not in queries:
+            queries.append(q)
+        if len(queries) >= 12:
+            break
+
+    try:
+        jira = JiraService.from_env()
+    except Exception as e:
+        return {"source": "jira_jql_text", "queries": queries, "issue_keys": [], "error": str(e)}
+
+    found: list[str] = []
+    seen = {key}
+    used_jql: list[str] = []
+
+    for q in queries:
+        jql = _make_jql(q)
+        if not jql:
+            continue
+        used_jql.append(jql)
+        try:
+            raws = jira.search(jql, max_results=int(max_results))
+        except Exception:
+            raws = []
+        for raw in raws:
+            k = str((raw or {}).get("key") or "").strip().upper()
+            if not k or k in seen:
+                continue
+            seen.add(k)
+            found.append(k)
+            if len(found) >= int(max_results):
+                break
+        if len(found) >= int(max_results):
+            break
+
+    return {"source": "jira_jql_text", "queries": queries, "jql": used_jql, "issue_keys": found}
 
 
 def sync(
@@ -326,12 +827,18 @@ def search_similar_jira(
     query: str,
     limit: int = 5,
     exclude_issue_keys: Optional[List[str]] = None,
+    include_issue_keys: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Query -> embedding -> cosine similarity search against jira_embeddings.
     """
     query_embedding = generate_embedding(query, task_type="retrieval_query")
-    results = find_similar_jira(query_embedding, limit=limit, exclude_issue_keys=exclude_issue_keys)
+    results = find_similar_jira(
+        query_embedding,
+        limit=limit,
+        exclude_issue_keys=exclude_issue_keys,
+        include_issue_keys=include_issue_keys,
+    )
     return {"query": query, "results_count": len(results), "results": results}
 
 

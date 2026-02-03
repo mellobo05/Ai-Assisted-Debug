@@ -2,15 +2,14 @@ import React, { useMemo, useState } from "react";
 import {
   getApiBase,
   getDebugStatus,
-  jiraIntake,
-  jiraSummarize,
-  getJiraSummarizeJob,
+  jiraAnalyze,
+  getJiraAnalyzeJob,
   searchJira,
   startDebug,
   type DebugRequest,
   type DebugResponse,
-  type JiraIntakeRequest,
-  type JiraSummarizeResponse,
+  type JiraAnalyzeRequest,
+  type JiraAnalyzeResponse,
   type JiraSearchResult
 } from "./api";
 
@@ -62,26 +61,20 @@ export function App() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<JiraSearchResult[]>([]);
 
-  const [jiraIntakeForm, setJiraIntakeForm] = useState<JiraIntakeRequest>(() => ({
+  const [jiraForm, setJiraForm] = useState<JiraAnalyzeRequest>(() => ({
     issue_key: "",
     summary: "",
-    domain: "",
+    component: "",
     os: detectOs(),
-    logs: ""
+    logs: "",
+    notes: "",
+    external_knowledge: false,
+    min_local_score: 0.62,
+    analysis_mode: "async"
   }));
-  const [isJiraIntaking, setIsJiraIntaking] = useState(false);
-  const [jiraIntakeResult, setJiraIntakeResult] = useState<any>(null);
-  const [jiraIntakeError, setJiraIntakeError] = useState<string | null>(null);
-
-  const [jiraKeyToSummarize, setJiraKeyToSummarize] = useState("");
-  const [jiraSummDomain, setJiraSummDomain] = useState<string>("");
-  const [jiraSummOs, setJiraSummOs] = useState<string>(detectOs());
-  const [jiraSummLogs, setJiraSummLogs] = useState<string>("");
-  const [jiraSummExternal, setJiraSummExternal] = useState<boolean>(false);
-  const [jiraSummMinScore, setJiraSummMinScore] = useState<number>(0.62);
-  const [isSummarizing, setIsSummarizing] = useState(false);
-  const [jiraSummary, setJiraSummary] = useState<JiraSummarizeResponse | null>(null);
-  const [jiraSummError, setJiraSummError] = useState<string | null>(null);
+  const [isJiraAnalyzing, setIsJiraAnalyzing] = useState(false);
+  const [jiraOut, setJiraOut] = useState<JiraAnalyzeResponse | null>(null);
+  const [jiraErr, setJiraErr] = useState<string | null>(null);
 
   const apiBase = useMemo(() => getApiBase(), []);
 
@@ -94,12 +87,10 @@ export function App() {
 
   const canSearch = searchQuery.trim().length > 0 && !isSearching;
 
-  const canJiraIntake =
-    jiraIntakeForm.issue_key.trim().length > 0 &&
-    jiraIntakeForm.summary.trim().length > 0 &&
-    !isJiraIntaking;
-
-  const canSummarize = jiraKeyToSummarize.trim().length > 0 && !isSummarizing;
+  const canJiraAnalyze =
+    (jiraForm.issue_key || "").trim().length > 0 &&
+    (jiraForm.summary || "").trim().length > 0 &&
+    !isJiraAnalyzing;
 
   async function readFileAsText(file: File): Promise<string> {
     return await new Promise((resolve, reject) => {
@@ -165,43 +156,24 @@ export function App() {
     }
   }
 
-  async function onJiraIntake(e: React.FormEvent) {
+  async function onJiraAnalyze(e: React.FormEvent) {
     e.preventDefault();
-    setJiraIntakeError(null);
-    setJiraIntakeResult(null);
-    setIsJiraIntaking(true);
+    setJiraErr(null);
+    setJiraOut(null);
+    setIsJiraAnalyzing(true);
     try {
-      const resp = await jiraIntake({
-        issue_key: jiraIntakeForm.issue_key.trim().toUpperCase(),
-        summary: jiraIntakeForm.summary.trim(),
-        domain: jiraIntakeForm.domain?.trim() || null,
-        os: jiraIntakeForm.os?.trim() || null,
-        description: jiraIntakeForm.description?.trim() || null,
-        logs: jiraIntakeForm.logs?.trim() || null
+      const resp = await jiraAnalyze({
+        issue_key: (jiraForm.issue_key || "").trim().toUpperCase(),
+        summary: (jiraForm.summary || "").trim(),
+        component: jiraForm.component?.trim() || null,
+        os: jiraForm.os?.trim() || null,
+        logs: jiraForm.logs?.trim() || null,
+        notes: jiraForm.notes?.trim() || null,
+        external_knowledge: Boolean(jiraForm.external_knowledge),
+        min_local_score: Number(jiraForm.min_local_score ?? 0.62),
+        analysis_mode: (jiraForm.analysis_mode ?? "async") as any
       });
-      setJiraIntakeResult(resp);
-    } catch (err: any) {
-      setJiraIntakeError(err?.message ?? String(err));
-    } finally {
-      setIsJiraIntaking(false);
-    }
-  }
-
-  async function onJiraSummarize(e: React.FormEvent) {
-    e.preventDefault();
-    setJiraSummError(null);
-    setJiraSummary(null);
-    setIsSummarizing(true);
-    try {
-      const resp = await jiraSummarize({
-        issue_key: jiraKeyToSummarize.trim().toUpperCase(),
-        domain: jiraSummDomain.trim() || null,
-        os: jiraSummOs.trim() || null,
-        logs: jiraSummLogs.trim() || null,
-        external_knowledge: jiraSummExternal,
-        min_local_score: jiraSummMinScore
-      });
-      setJiraSummary(resp);
+      setJiraOut(resp);
 
       // If analysis is async, poll until completed (or timeout).
       const jobId = resp.job_id;
@@ -211,16 +183,16 @@ export function App() {
         const maxWaitMs = 45000;
         while (Date.now() - startedAt < maxWaitMs) {
           await new Promise((r) => setTimeout(r, 1000));
-          const j = await getJiraSummarizeJob(jobId);
-          setJiraSummary(j);
+          const j = await getJiraAnalyzeJob(jobId);
+          setJiraOut(j);
           const s = (j.analysis_status || "").toUpperCase();
           if (s && s !== "PROCESSING") break;
         }
       }
     } catch (err: any) {
-      setJiraSummError(err?.message ?? String(err));
+      setJiraErr(err?.message ?? String(err));
     } finally {
-      setIsSummarizing(false);
+      setIsJiraAnalyzing(false);
     }
   }
 
@@ -241,38 +213,36 @@ export function App() {
 
       <main className="grid">
         <section className="card">
-          <div className="cardTitle">Add new JIRA (offline intake)</div>
+          <div className="cardTitle">JIRA Analyze (one-step)</div>
           <div className="muted">
-            Stores the issue into <code>jira_issues</code>/<code>jira_embeddings</code> so you can
-            search/summarize it later.
+            One input set: if the issue exists and a prior analysis exists, you’ll get a cached RCA. Otherwise it
+            stores/updates the issue, finds related issues, returns a fast report, and computes analysis in background.
           </div>
 
-          <form onSubmit={onJiraIntake} className="form">
+          <form onSubmit={onJiraAnalyze} className="form">
             <div className="row">
               <div className="field">
-                <label className="label" htmlFor="intakeKey">
-                  JIRA key
+                <label className="label" htmlFor="jiraKey">
+                  JIRA ID
                 </label>
                 <input
-                  id="intakeKey"
+                  id="jiraKey"
                   className="input"
                   placeholder="e.g. SYSCROS-123456"
-                  value={jiraIntakeForm.issue_key}
-                  onChange={(e) =>
-                    setJiraIntakeForm((s) => ({ ...s, issue_key: e.target.value.toUpperCase() }))
-                  }
+                  value={jiraForm.issue_key || ""}
+                  onChange={(e) => setJiraForm((s) => ({ ...s, issue_key: e.target.value.toUpperCase() }))}
                 />
               </div>
 
               <div className="field">
-                <label className="label" htmlFor="intakeOs">
+                <label className="label" htmlFor="jiraOs">
                   OS
                 </label>
                 <select
-                  id="intakeOs"
+                  id="jiraOs"
                   className="select"
-                  value={jiraIntakeForm.os ?? detectOs()}
-                  onChange={(e) => setJiraIntakeForm((s) => ({ ...s, os: e.target.value }))}
+                  value={jiraForm.os ?? detectOs()}
+                  onChange={(e) => setJiraForm((s) => ({ ...s, os: e.target.value }))}
                 >
                   {OS_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -284,37 +254,37 @@ export function App() {
             </div>
 
             <div className="field">
-              <label className="label" htmlFor="intakeSummary">
-                Summary
+              <label className="label" htmlFor="jiraSummary">
+                JIRA summary
               </label>
               <input
-                id="intakeSummary"
+                id="jiraSummary"
                 className="input"
                 placeholder="e.g. Video flicker during playback"
-                value={jiraIntakeForm.summary}
-                onChange={(e) => setJiraIntakeForm((s) => ({ ...s, summary: e.target.value }))}
+                value={jiraForm.summary || ""}
+                onChange={(e) => setJiraForm((s) => ({ ...s, summary: e.target.value }))}
               />
             </div>
 
             <div className="row">
               <div className="field">
-                <label className="label" htmlFor="intakeDomain">
-                  Domain
+                <label className="label" htmlFor="jiraComponent">
+                  Component
                 </label>
                 <input
-                  id="intakeDomain"
+                  id="jiraComponent"
                   className="input"
-                  placeholder="e.g. media"
-                  value={jiraIntakeForm.domain ?? ""}
-                  onChange={(e) => setJiraIntakeForm((s) => ({ ...s, domain: e.target.value }))}
+                  placeholder="e.g. Display"
+                  value={jiraForm.component ?? ""}
+                  onChange={(e) => setJiraForm((s) => ({ ...s, component: e.target.value }))}
                 />
               </div>
               <div className="field">
-                <label className="label" htmlFor="intakeLogsFile">
+                <label className="label" htmlFor="jiraLogsFile">
                   Logs file (optional)
                 </label>
                 <input
-                  id="intakeLogsFile"
+                  id="jiraLogsFile"
                   className="input"
                   type="file"
                   accept=".txt,.log"
@@ -322,230 +292,153 @@ export function App() {
                     const f = e.target.files?.[0];
                     if (!f) return;
                     const text = await readFileAsText(f);
-                    setJiraIntakeForm((s) => ({ ...s, logs: text }));
+                    setJiraForm((s) => ({ ...s, logs: text }));
                   }}
                 />
               </div>
             </div>
 
             <div className="field">
-              <label className="label" htmlFor="intakeLogs">
-                Logs (optional)
+              <label className="label" htmlFor="jiraLogs">
+                Logs
               </label>
               <textarea
-                id="intakeLogs"
+                id="jiraLogs"
                 className="textarea"
-                placeholder="Paste relevant logs here (optional)…"
-                value={jiraIntakeForm.logs ?? ""}
-                onChange={(e) => setJiraIntakeForm((s) => ({ ...s, logs: e.target.value }))}
-                rows={6}
-              />
-            </div>
-
-            <div className="actions">
-              <button className="button" disabled={!canJiraIntake} type="submit">
-                {isJiraIntaking ? "Saving…" : "Save JIRA to DB"}
-              </button>
-              <button
-                className="buttonSecondary"
-                type="button"
-                onClick={() => {
-                  setJiraIntakeForm({
-                    issue_key: "",
-                    summary: "",
-                    domain: "",
-                    os: detectOs(),
-                    logs: ""
-                  });
-                  setJiraIntakeResult(null);
-                  setJiraIntakeError(null);
-                }}
-                disabled={isJiraIntaking}
-              >
-                Clear
-              </button>
-            </div>
-          </form>
-
-          {jiraIntakeError && (
-            <div className="errorBox">
-              <div className="errorTitle">Intake failed</div>
-              <pre className="pre">{jiraIntakeError}</pre>
-            </div>
-          )}
-          {jiraIntakeResult && (
-            <div className="resultBox">
-              <div className="kv">
-                <div className="k">issue_key</div>
-                <div className="v">
-                  <code>{jiraIntakeResult.issue_key}</code>
-                </div>
-              </div>
-              <div className="kv">
-                <div className="k">embedded</div>
-                <div className="v">
-                  <code>{String(Boolean(jiraIntakeResult.embedded))}</code>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className="card">
-          <div className="cardTitle">Fetch &amp; summarize JIRA</div>
-          <div className="muted">
-            Runs the swarm summary on your locally stored <code>jira_issues</code> and returns{" "}
-            <code>report + analysis</code>.
-          </div>
-
-          <form onSubmit={onJiraSummarize} className="form">
-            <div className="row">
-              <div className="field">
-                <label className="label" htmlFor="summKey">
-                  JIRA key
-                </label>
-                <input
-                  id="summKey"
-                  className="input"
-                  placeholder="e.g. SYSCROS-123456"
-                  value={jiraKeyToSummarize}
-                  onChange={(e) => setJiraKeyToSummarize(e.target.value.toUpperCase())}
-                />
-              </div>
-              <div className="field">
-                <label className="label" htmlFor="summDomain">
-                  Domain
-                </label>
-                <input
-                  id="summDomain"
-                  className="input"
-                  placeholder="e.g. media"
-                  value={jiraSummDomain}
-                  onChange={(e) => setJiraSummDomain(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="row">
-              <div className="field">
-                <label className="label" htmlFor="summOs">
-                  OS
-                </label>
-                <select
-                  id="summOs"
-                  className="select"
-                  value={jiraSummOs}
-                  onChange={(e) => setJiraSummOs(e.target.value)}
-                >
-                  {OS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label className="label" htmlFor="summLogsFile">
-                  Logs file (optional)
-                </label>
-                <input
-                  id="summLogsFile"
-                  className="input"
-                  type="file"
-                  accept=".txt,.log"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    const text = await readFileAsText(f);
-                    setJiraSummLogs(text);
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="field">
-              <label className="label" htmlFor="summLogs">
-                Logs (optional)
-              </label>
-              <textarea
-                id="summLogs"
-                className="textarea"
-                placeholder="Paste relevant logs (optional)…"
-                value={jiraSummLogs}
-                onChange={(e) => setJiraSummLogs(e.target.value)}
+                placeholder="Paste relevant logs here…"
+                value={jiraForm.logs ?? ""}
+                onChange={(e) => setJiraForm((s) => ({ ...s, logs: e.target.value }))}
                 rows={6}
               />
             </div>
 
             <div className="row">
               <div className="field">
-                <label className="label" htmlFor="summExternal">
+                <label className="label" htmlFor="jiraExternal">
                   External knowledge
                 </label>
                 <select
-                  id="summExternal"
+                  id="jiraExternal"
                   className="select"
-                  value={jiraSummExternal ? "yes" : "no"}
-                  onChange={(e) => setJiraSummExternal(e.target.value === "yes")}
+                  value={jiraForm.external_knowledge ? "yes" : "no"}
+                  onChange={(e) => setJiraForm((s) => ({ ...s, external_knowledge: e.target.value === "yes" }))}
                 >
                   <option value="no">No</option>
                   <option value="yes">Yes (if similarity &lt; threshold)</option>
                 </select>
               </div>
               <div className="field">
-                <label className="label" htmlFor="summMinScore">
+                <label className="label" htmlFor="jiraMinScore">
                   Similarity threshold
                 </label>
                 <input
-                  id="summMinScore"
+                  id="jiraMinScore"
                   className="input"
                   type="number"
                   min={0}
                   max={1}
                   step={0.01}
-                  value={jiraSummMinScore}
-                  onChange={(e) => setJiraSummMinScore(Number(e.target.value || 0.62))}
+                  value={Number(jiraForm.min_local_score ?? 0.62)}
+                  onChange={(e) => setJiraForm((s) => ({ ...s, min_local_score: Number(e.target.value || 0.62) }))}
                 />
               </div>
             </div>
 
+            <div className="field">
+              <label className="label" htmlFor="jiraNotes">
+                Important info / notes (optional)
+              </label>
+              <textarea
+                id="jiraNotes"
+                className="textarea"
+                placeholder="Any extra hints: repro steps, environment, codec, driver version…"
+                value={jiraForm.notes ?? ""}
+                onChange={(e) => setJiraForm((s) => ({ ...s, notes: e.target.value }))}
+                rows={4}
+              />
+            </div>
+
+            <div className="row">
+              <div className="field">
+                <label className="label" htmlFor="jiraMode">
+                  Analysis mode
+                </label>
+                <select
+                  id="jiraMode"
+                  className="select"
+                  value={jiraForm.analysis_mode ?? "async"}
+                  onChange={(e) =>
+                    setJiraForm((s) => ({ ...s, analysis_mode: e.target.value as any }))
+                  }
+                >
+                  <option value="async">Async (fast UI)</option>
+                  <option value="sync">Sync (wait for analysis)</option>
+                  <option value="skip">Skip analysis (report only)</option>
+                </select>
+              </div>
+              <div className="field">
+                <label className="label">&nbsp;</label>
+                <button className="button" disabled={!canJiraAnalyze} type="submit">
+                  {isJiraAnalyzing ? "Analyzing…" : "Analyze"}
+                </button>
+              </div>
+            </div>
+
             <div className="actions">
-              <button className="button" disabled={!canSummarize} type="submit">
-                {isSummarizing ? "Summarizing…" : "Fetch & summarize"}
-              </button>
               <button
                 className="buttonSecondary"
                 type="button"
                 onClick={() => {
-                  setJiraSummary(null);
-                  setJiraSummError(null);
+                  setJiraOut(null);
+                  setJiraErr(null);
                 }}
-                disabled={isSummarizing}
+                disabled={isJiraAnalyzing}
               >
                 Clear output
               </button>
             </div>
           </form>
 
-          {jiraSummError && (
+          {jiraErr && (
             <div className="errorBox">
-              <div className="errorTitle">Summarize failed</div>
-              <pre className="pre">{jiraSummError}</pre>
+              <div className="errorTitle">Analyze failed</div>
+              <pre className="pre">{jiraErr}</pre>
             </div>
           )}
 
-          {jiraSummary && (
+          {jiraOut && (
             <div className="resultBox">
+              {jiraOut.cache_hit ? (
+                <div className="hint">
+                  Cache hit: returned previous RCA for the same JIRA key + summary.
+                </div>
+              ) : null}
               <div className="kv">
                 <div className="k">issue_key</div>
                 <div className="v">
-                  <code>{jiraSummary.issue_key}</code>
+                  <code>{jiraOut.issue_key}</code>
                 </div>
               </div>
+              {"analysis_status" in jiraOut ? (
+                <div className="kv">
+                  <div className="k">analysis_status</div>
+                  <div className="v">
+                    <code>{String(jiraOut.analysis_status ?? "")}</code>
+                  </div>
+                </div>
+              ) : null}
+              {jiraOut.related_issue_keys && jiraOut.related_issue_keys.length > 0 ? (
+                <div className="kv">
+                  <div className="k">related</div>
+                  <div className="v">
+                    <code>{jiraOut.related_issue_keys.join(", ")}</code>
+                  </div>
+                </div>
+              ) : null}
               <div className="hint">Report</div>
-              <pre className="pre">{jiraSummary.report}</pre>
+              <pre className="pre">{jiraOut.report}</pre>
               <div className="hint">Analysis</div>
-              <pre className="pre">{jiraSummary.analysis}</pre>
+              <pre className="pre">{jiraOut.analysis}</pre>
             </div>
           )}
         </section>

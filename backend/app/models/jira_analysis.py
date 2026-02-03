@@ -22,6 +22,8 @@ class JiraAnalysisRun(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     issue_key = Column(String, nullable=False, index=True)
+    # Idempotency key for "analyze" runs (avoid storing duplicates for same input).
+    idempotency_key = Column(String, nullable=True, index=True)
 
     domain = Column(String, nullable=True)
     os = Column(String, nullable=True)

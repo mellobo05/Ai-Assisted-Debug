@@ -44,7 +44,7 @@ export type SearchResponse = {
 export type JiraIntakeRequest = {
   issue_key: string;
   summary: string;
-  domain?: string | null;
+  component?: string | null;
   os?: string | null;
   description?: string | null;
   logs?: string | null;
@@ -57,7 +57,7 @@ export type JiraIntakeResponse = {
 
 export type JiraSummarizeRequest = {
   issue_key: string;
-  domain?: string | null;
+  component?: string | null;
   os?: string | null;
   logs?: string | null;
   limit?: number;
@@ -74,6 +74,30 @@ export type JiraSummarizeResponse = {
   saved_run?: any;
   analysis_status?: string | null;
   job_id?: string | null;
+};
+
+export type JiraAnalyzeRequest = {
+  issue_key: string;
+  summary: string;
+  component?: string | null;
+  os?: string | null;
+  logs?: string | null;
+  notes?: string | null;
+  external_knowledge?: boolean;
+  min_local_score?: number;
+  analysis_mode?: "async" | "sync" | "skip";
+};
+
+export type JiraAnalyzeResponse = {
+  issue_key: string;
+  summary: string;
+  report: string;
+  analysis: string;
+  analysis_status?: string | null;
+  job_id?: string | null;
+  related_issue_keys?: string[] | null;
+  cache_hit?: boolean;
+  saved_run?: any;
 };
 
 const DEFAULT_API_BASE = "http://127.0.0.1:8000";
@@ -189,6 +213,34 @@ export async function jiraSummarize(
 export async function getJiraSummarizeJob(jobId: string): Promise<JiraSummarizeResponse> {
   return await fetchJsonWithTimeout<JiraSummarizeResponse>(
     `${API_BASE}/jira/summarize/job/${encodeURIComponent(jobId)}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    },
+    15000
+  );
+}
+
+export async function jiraAnalyze(payload: JiraAnalyzeRequest): Promise<JiraAnalyzeResponse> {
+  return await fetchJsonWithTimeout<JiraAnalyzeResponse>(
+    `${API_BASE}/jira/analyze`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...payload,
+        analysis_mode: payload.analysis_mode ?? "async",
+        external_knowledge: payload.external_knowledge ?? false,
+        min_local_score: payload.min_local_score ?? 0.62
+      })
+    },
+    30000
+  );
+}
+
+export async function getJiraAnalyzeJob(jobId: string): Promise<JiraAnalyzeResponse> {
+  return await fetchJsonWithTimeout<JiraAnalyzeResponse>(
+    `${API_BASE}/jira/analyze/job/${encodeURIComponent(jobId)}`,
     {
       method: "GET",
       headers: { "Content-Type": "application/json" }

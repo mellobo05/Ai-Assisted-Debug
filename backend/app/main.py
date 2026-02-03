@@ -4,13 +4,14 @@ import asyncio
 import os
 from uuid import UUID
 
-from app.db.session import SessionLocal
+from app.db.session import SessionLocal, engine
 from app.models.debug import DebugSession, DebugEmbedding
 from app.services.rag import process_rag_pipeline
 from app.services.search import find_similar_jira
 from app.services.embeddings import generate_embedding
 from app.integrations.jira.client import JiraService, build_embedding_text, extract_issue_fields
 from app.models.jira import JiraIssue, JiraEmbedding
+from app.models.jira_analysis import JiraAnalysisRun
 from app.schemas.debug import DebugRequest, DebugStartResponse, DebugStatusResponse
 from app.schemas.jira import (
     JiraSyncRequest,
@@ -19,6 +20,8 @@ from app.schemas.jira import (
     JiraIntakeResponse,
     JiraSummarizeRequest,
     JiraSummarizeResponse,
+    JiraAnalyzeRequest,
+    JiraAnalyzeResponse,
 )
 from app.schemas.search import QueryRequest, SearchResponse, JiraSearchResult
 from app.schemas.snippets import SnippetSaveRequest, SnippetSaveResponse, SnippetListResponse
@@ -27,6 +30,9 @@ app = FastAPI(title="AI Assisted Debugger")
 
 # In-memory summarize jobs (kept simple; good enough for local dev).
 _JIRA_SUMMARIZE_JOBS: dict[str, dict] = {}
+_JIRA_ANALYZE_JOBS: dict[str, dict] = {}
+# Map idempotency_key -> job_id (dedupe repeated clicks)
+_JIRA_ANALYZE_JOB_BY_IDEM: dict[str, str] = {}
 
 # Warm up embedding provider on startup to avoid first-request latency (esp. SBERT).
 @app.on_event("startup")
@@ -40,6 +46,71 @@ async def _warmup_embeddings() -> None:
     except Exception as e:
         # Don't block server start if warmup fails (e.g., model not downloaded yet).
         print(f"[STARTUP] Embedding warmup skipped/failed: {e}")
+
+
+@app.on_event("startup")
+async def _ensure_db_schema() -> None:
+    """
+    Best-effort schema ensure for dev (no migrations framework).
+
+    - Create missing tables (safe)
+    - Add missing columns (safe additive migrations)
+    """
+    try:
+        # Create missing tables (does not alter existing).
+        from app.db.base import Base
+        from app.models import debug as _m_debug  # noqa: F401
+        from app.models import jira as _m_jira  # noqa: F401
+        from app.models import jira_analysis as _m_ja  # noqa: F401
+        from app.models import snippets as _m_snip  # noqa: F401
+
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"[STARTUP] DB create_all skipped/failed: {e}")
+
+    # Additive column migration: jira_issues.related_issue_keys
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            r = conn.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema='public'
+                      AND table_name='jira_issues'
+                      AND column_name='related_issue_keys'
+                    """
+                )
+            ).first()
+            if not r:
+                conn.execute(text("ALTER TABLE public.jira_issues ADD COLUMN related_issue_keys JSON NULL"))
+                print("[STARTUP] DB migrated: added jira_issues.related_issue_keys")
+    except Exception as e:
+        print(f"[STARTUP] DB migration skipped/failed: {e}")
+
+    # Additive column migration: jira_analysis_runs.idempotency_key
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            r = conn.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema='public'
+                      AND table_name='jira_analysis_runs'
+                      AND column_name='idempotency_key'
+                    """
+                )
+            ).first()
+            if not r:
+                conn.execute(text("ALTER TABLE public.jira_analysis_runs ADD COLUMN idempotency_key VARCHAR NULL"))
+                print("[STARTUP] DB migrated: added jira_analysis_runs.idempotency_key")
+    except Exception as e:
+        print(f"[STARTUP] DB migration skipped/failed (analysis idempotency): {e}")
 
 # Allow the React dev server to call the API from the browser
 app.add_middleware(
@@ -346,11 +417,15 @@ async def jira_summarize(request: JiraSummarizeRequest):
         external_max_results=int(request.external_max_results),
     )
 
+    component = str(getattr(request, "component", None) or "").strip() or None
+    domain = str(getattr(request, "domain", None) or "").strip() or None
+
     # 1) Always compute report fast (skip LLM)
     out_report = run_syscros_swarm(
         issue_key=request.issue_key,
         logs_text=request.logs,
-        domain=request.domain,
+        domain=domain,
+        component=component,
         os_name=request.os,
         save_run=False,
         do_analysis=False,
@@ -372,7 +447,8 @@ async def jira_summarize(request: JiraSummarizeRequest):
         out_full = run_syscros_swarm(
             issue_key=request.issue_key,
             logs_text=request.logs,
-            domain=request.domain,
+            domain=domain,
+            component=component,
             os_name=request.os,
             save_run=bool(request.save_run),
             do_analysis=True,
@@ -407,7 +483,8 @@ async def jira_summarize(request: JiraSummarizeRequest):
                 return run_syscros_swarm(
                     issue_key=request.issue_key,
                     logs_text=request.logs,
-                    domain=request.domain,
+                    domain=domain,
+                    component=component,
                     os_name=request.os,
                     save_run=bool(request.save_run),
                     do_analysis=True,
@@ -469,6 +546,376 @@ async def jira_summarize_job(job_id: str):
         "saved_run": job.get("saved_run"),
         "analysis_status": status,
         "job_id": str(job_id),
+    }
+
+
+@app.post("/jira/analyze", response_model=JiraAnalyzeResponse)
+async def jira_analyze(request: JiraAnalyzeRequest):
+    """
+    Single-input pipeline for the UI (intake + caching + related-jira tracking + summarize).
+    """
+    import uuid
+
+    from app.agents.swarm import SwarmConfig, run_syscros_swarm
+    from app.agents.tools import jira_tools
+
+    import hashlib
+    import json
+
+    key = str(request.issue_key).strip().upper()
+    summary = str(request.summary or "").strip()
+    component_in = str(getattr(request, "component", None) or "").strip() or None
+    domain_in = str(getattr(request, "domain", None) or "").strip() or None
+
+    # Idempotency key based on the meaningful inputs.
+    # This dedupes repeated clicks and prevents duplicate analysis-run rows for new issues.
+    def _fp_text(s: str, n: int) -> str:
+        s = (s or "").strip()
+        if not s:
+            return ""
+        if len(s) > n:
+            s = s[-n:]
+        return hashlib.sha256(s.encode("utf-8", errors="ignore")).hexdigest()[:16]
+
+    idem_payload = {
+        "issue_key": key,
+        "summary": summary,
+        "domain": str(domain_in or "").strip().lower(),
+        "component": str(component_in or "").strip().lower(),
+        "os": str(request.os or "").strip().lower(),
+        "logs_fp": _fp_text(str(request.logs or ""), 40000),
+        "notes_fp": _fp_text(str(request.notes or ""), 20000),
+        "limit": int(request.limit),
+        "external_knowledge": bool(request.external_knowledge),
+        "min_local_score": float(request.min_local_score),
+    }
+    idempotency_key = hashlib.sha256(json.dumps(idem_payload, sort_keys=True).encode("utf-8")).hexdigest()[:32]
+
+    mode = (request.analysis_mode or "async").strip().lower()
+    if mode not in {"async", "sync", "skip"}:
+        mode = "async"
+
+    # 1) If prior analysis exists for this exact input -> return cached (idempotent)
+    db = SessionLocal()
+    try:
+        existing = db.query(JiraIssue).filter(JiraIssue.issue_key == key).first()
+        if existing and (str(existing.summary or "").strip() == summary):
+            exact_run = (
+                db.query(JiraAnalysisRun)
+                .filter(JiraAnalysisRun.issue_key == key, JiraAnalysisRun.idempotency_key == idempotency_key)
+                .order_by(JiraAnalysisRun.created_at.desc())
+                .first()
+            )
+            if exact_run and (exact_run.analysis or "").strip():
+                return {
+                    "issue_key": key,
+                    "summary": summary,
+                    "report": str(exact_run.report or ""),
+                    "analysis": str(exact_run.analysis or ""),
+                    "analysis_status": "CACHED",
+                    "job_id": None,
+                    "related_issue_keys": existing.related_issue_keys if isinstance(existing.related_issue_keys, list) else None,
+                    "cache_hit": True,
+                    "saved_run": {"id": str(exact_run.id), "issue_key": key},
+                }
+            last_run = (
+                db.query(JiraAnalysisRun)
+                .filter(JiraAnalysisRun.issue_key == key)
+                .order_by(JiraAnalysisRun.created_at.desc())
+                .first()
+            )
+            if last_run and (last_run.analysis or "").strip():
+                return {
+                    "issue_key": key,
+                    "summary": summary,
+                    "report": str(last_run.report or ""),
+                    "analysis": str(last_run.analysis or ""),
+                    "analysis_status": "CACHED",
+                    "job_id": None,
+                    "related_issue_keys": existing.related_issue_keys if isinstance(existing.related_issue_keys, list) else None,
+                    "cache_hit": True,
+                    "saved_run": {"id": str(last_run.id), "issue_key": key} if getattr(last_run, "id", None) else None,
+                }
+    finally:
+        db.close()
+
+    # If an identical job is already running/completed in-memory, reuse it.
+    prev_job_id = _JIRA_ANALYZE_JOB_BY_IDEM.get(idempotency_key)
+    if prev_job_id:
+        job = _JIRA_ANALYZE_JOBS.get(prev_job_id)
+        if isinstance(job, dict):
+            st = str(job.get("status") or "PROCESSING")
+            if st == "PROCESSING":
+                return {
+                    "issue_key": str(job.get("issue_key") or key),
+                    "summary": str(job.get("summary") or summary),
+                    "report": str(job.get("report") or ""),
+                    "analysis": "",
+                    "analysis_status": "PROCESSING",
+                    "job_id": str(prev_job_id),
+                    "related_issue_keys": job.get("related_issue_keys"),
+                    "cache_hit": False,
+                    "saved_run": None,
+                }
+            if st == "COMPLETED":
+                return {
+                    "issue_key": str(job.get("issue_key") or key),
+                    "summary": str(job.get("summary") or summary),
+                    "report": str(job.get("report") or ""),
+                    "analysis": str(job.get("analysis") or ""),
+                    "analysis_status": "COMPLETED",
+                    "job_id": str(prev_job_id),
+                    "related_issue_keys": job.get("related_issue_keys"),
+                    "cache_hit": False,
+                    "saved_run": job.get("saved_run"),
+                }
+
+    # 2/3) Upsert issue (new key OR changed summary) with user input
+    # Store notes as description if no description exists; and always include logs.
+    description = ""
+    if request.notes:
+        description = str(request.notes).strip()
+
+    resolved_component = None
+    if component_in:
+        try:
+            resolved_component = jira_tools.resolve_component_from_db(
+                ctx={"inputs": {}, "steps": {}},
+                component=component_in,
+            )
+        except Exception:
+            resolved_component = component_in
+
+    jira_tools.intake_issue_from_user_input(
+        ctx={"inputs": {}, "steps": {}},
+        issue_key=key,
+        summary=summary,
+        domain=domain_in,
+        components=[resolved_component] if resolved_component else None,
+        os=request.os,
+        description=description or None,
+        logs=request.logs,
+    )
+
+    cfg = SwarmConfig(
+        limit=int(request.limit),
+        min_local_score=float(request.min_local_score),
+        external_knowledge=bool(request.external_knowledge),
+        external_max_results=int(request.external_max_results),
+    )
+
+    # 4) Report fast (no LLM)
+    out_report = run_syscros_swarm(
+        issue_key=key,
+        logs_text=request.logs,
+        domain=domain_in,
+        component=resolved_component or component_in,
+        os_name=request.os,
+        save_run=False,
+        do_analysis=False,
+        config=cfg,
+    )
+    report = str(out_report.get("report") or "")
+
+    # Related issues (preferred): live JIRA JQL text~ algorithm; fallback: local embedding top-1
+    related_keys: list[str] = []
+    related_source: str | None = None
+    try:
+        rel = jira_tools.find_related_issue_keys_using_jira_text_search(
+            ctx={"inputs": {}, "steps": {}},
+            issue_key=key,
+            summary=summary,
+            max_results=min(10, max(1, int(request.limit))),
+        )
+        if isinstance(rel, dict) and isinstance(rel.get("issue_keys"), list):
+            related_keys = [str(x).strip().upper() for x in rel.get("issue_keys") if str(x).strip()]
+            related_keys = [k for k in related_keys if k and k != key]
+            if related_keys:
+                related_source = "jira_jql_text"
+    except Exception:
+        related_keys = []
+        related_source = None
+
+    if not related_keys:
+        try:
+            sim = out_report.get("similar") if isinstance(out_report, dict) else None
+            results = sim.get("results") if isinstance(sim, dict) else None
+            if isinstance(results, list) and results:
+                top = results[0] or {}
+                rk = str(top.get("issue_key") or "").strip().upper()
+                try:
+                    score = float(top.get("similarity", 0.0))
+                except Exception:
+                    score = 0.0
+                if rk and rk != key and score >= float(request.min_local_score):
+                    related_keys = [rk]
+                    related_source = "db_embeddings"
+        except Exception:
+            related_keys = []
+            related_source = None
+
+    if related_keys:
+        db2 = SessionLocal()
+        try:
+            row = db2.query(JiraIssue).filter(JiraIssue.issue_key == key).first()
+            if row:
+                existing_list = row.related_issue_keys if isinstance(row.related_issue_keys, list) else []
+                merged = []
+                seen = set()
+                for k in (related_keys + list(existing_list)):
+                    s = str(k or "").strip().upper()
+                    if not s or s in seen or s == key:
+                        continue
+                    seen.add(s)
+                    merged.append(s)
+                row.related_issue_keys = merged or None
+                db2.commit()
+        except Exception:
+            db2.rollback()
+        finally:
+            db2.close()
+
+    if mode == "skip":
+        return {
+            "issue_key": key,
+            "summary": summary,
+            "report": report,
+            "analysis": "",
+            "analysis_status": "SKIPPED",
+            "job_id": None,
+            "related_issue_keys": related_keys or None,
+            "cache_hit": False,
+            "saved_run": None,
+        }
+
+    if mode == "sync":
+        out_full = run_syscros_swarm(
+            issue_key=key,
+            logs_text=request.logs,
+            domain=domain_in,
+            component=resolved_component or component_in,
+            os_name=request.os,
+            related_issue_keys=related_keys or None,
+            related_source=related_source,
+            analysis_idempotency_key=idempotency_key,
+            save_run=bool(request.save_run),
+            do_analysis=True,
+            config=cfg,
+        )
+        return {
+            "issue_key": key,
+            "summary": summary,
+            "report": str(out_full.get("report") or report),
+            "analysis": str(out_full.get("analysis") or ""),
+            "analysis_status": "COMPLETED",
+            "job_id": None,
+            "related_issue_keys": related_keys or None,
+            "cache_hit": False,
+            "saved_run": out_full.get("saved_run"),
+        }
+
+    # async: spawn analysis job
+    job_id = uuid.uuid4().hex
+    _JIRA_ANALYZE_JOB_BY_IDEM[idempotency_key] = job_id
+    _JIRA_ANALYZE_JOBS[job_id] = {
+        "status": "PROCESSING",
+        "issue_key": key,
+        "summary": summary,
+        "report": report,
+        "analysis": "",
+        "error": None,
+        "saved_run": None,
+        "related_issue_keys": related_keys,
+        "idempotency_key": idempotency_key,
+    }
+
+    async def _run_analyze_job() -> None:
+        try:
+            loop = asyncio.get_event_loop()
+
+            def _do_work():
+                return run_syscros_swarm(
+                    issue_key=key,
+                    logs_text=request.logs,
+                    domain=domain_in,
+                    component=resolved_component or component_in,
+                    os_name=request.os,
+                    related_issue_keys=related_keys or None,
+                    related_source=related_source,
+                    analysis_idempotency_key=idempotency_key,
+                    save_run=bool(request.save_run),
+                    do_analysis=True,
+                    config=cfg,
+                )
+
+            out_full = await loop.run_in_executor(None, _do_work)
+            _JIRA_ANALYZE_JOBS[job_id] = {
+                "status": "COMPLETED",
+                "issue_key": key,
+                "summary": summary,
+                "report": str(out_full.get("report") or report),
+                "analysis": str(out_full.get("analysis") or ""),
+                "error": None,
+                "saved_run": out_full.get("saved_run"),
+                "related_issue_keys": related_keys,
+                "idempotency_key": idempotency_key,
+            }
+        except Exception as e:
+            _JIRA_ANALYZE_JOBS[job_id] = {
+                "status": "ERROR",
+                "issue_key": key,
+                "summary": summary,
+                "report": report,
+                "analysis": "",
+                "error": f"{type(e).__name__}: {str(e).strip()}" if str(e).strip() else type(e).__name__,
+                "saved_run": None,
+                "related_issue_keys": related_keys,
+                "idempotency_key": idempotency_key,
+            }
+
+    asyncio.create_task(_run_analyze_job())
+    return {
+        "issue_key": key,
+        "summary": summary,
+        "report": report,
+        "analysis": "",
+        "analysis_status": "PROCESSING",
+        "job_id": job_id,
+        "related_issue_keys": related_keys or None,
+        "cache_hit": False,
+        "saved_run": None,
+    }
+
+
+@app.get("/jira/analyze/job/{job_id}", response_model=JiraAnalyzeResponse)
+async def jira_analyze_job(job_id: str):
+    job = _JIRA_ANALYZE_JOBS.get(str(job_id).strip())
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    status = str(job.get("status") or "PROCESSING")
+    if status == "ERROR":
+        err = str(job.get("error") or "Unknown error")
+        return {
+            "issue_key": str(job.get("issue_key") or ""),
+            "summary": str(job.get("summary") or ""),
+            "report": str(job.get("report") or ""),
+            "analysis": f"Analysis: failed ({err})\n",
+            "analysis_status": "ERROR",
+            "job_id": str(job_id),
+            "related_issue_keys": job.get("related_issue_keys"),
+            "cache_hit": False,
+            "saved_run": job.get("saved_run"),
+        }
+    return {
+        "issue_key": str(job.get("issue_key") or ""),
+        "summary": str(job.get("summary") or ""),
+        "report": str(job.get("report") or ""),
+        "analysis": str(job.get("analysis") or ""),
+        "analysis_status": status,
+        "job_id": str(job_id),
+        "related_issue_keys": job.get("related_issue_keys"),
+        "cache_hit": False,
+        "saved_run": job.get("saved_run"),
     }
 
 
