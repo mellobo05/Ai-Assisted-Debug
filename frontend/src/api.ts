@@ -248,4 +248,3 @@ export async function getJiraAnalyzeJob(jobId: string): Promise<JiraAnalyzeRespo
     15000
   );
 }
-

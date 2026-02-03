@@ -37,15 +37,43 @@ _JIRA_ANALYZE_JOB_BY_IDEM: dict[str, str] = {}
 # Warm up embedding provider on startup to avoid first-request latency (esp. SBERT).
 @app.on_event("startup")
 async def _warmup_embeddings() -> None:
+    """
+    Warmup should never block server startup.
+
+    SBERT model load can take a long time on first run (download) or hang on restricted networks.
+    We run it in a thread with a short timeout and continue startup regardless.
+    """
     try:
+        if os.getenv("EMBEDDINGS_WARMUP", "true").strip().lower() != "true":
+            return
+
         provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
-        if provider == "sbert":
-            # Trigger model load once at boot.
-            generate_embedding("warmup", task_type="retrieval_query")
+        if provider != "sbert":
+            return
+
+        try:
+            timeout_s = float(os.getenv("EMBEDDINGS_WARMUP_TIMEOUT_SECONDS", "2"))
+        except Exception:
+            timeout_s = 2.0
+
+        loop = asyncio.get_event_loop()
+
+        async def _do_warmup() -> None:
+            def _work() -> None:
+                generate_embedding("warmup", task_type="retrieval_query")
+
+            await loop.run_in_executor(None, _work)
+
+        try:
+            await asyncio.wait_for(_do_warmup(), timeout=timeout_s)
             print("[STARTUP] SBERT warmup complete")
+        except asyncio.TimeoutError:
+            print(f"[STARTUP] SBERT warmup skipped (timeout after {timeout_s}s)")
+        except Exception as e:
+            print(f"[STARTUP] SBERT warmup skipped/failed: {type(e).__name__}: {str(e).strip()}" if str(e).strip() else f"[STARTUP] SBERT warmup skipped/failed: {type(e).__name__}")
     except Exception as e:
-        # Don't block server start if warmup fails (e.g., model not downloaded yet).
-        print(f"[STARTUP] Embedding warmup skipped/failed: {e}")
+        # Absolute last-resort: never block server start.
+        print(f"[STARTUP] Embedding warmup skipped/failed: {type(e).__name__}")
 
 
 @app.on_event("startup")

@@ -26,6 +26,12 @@ if (Test-Path $envFile) {
         if ($_ -match "^([^#=]+)=(.+)$") {
             $key = $matches[1].Trim()
             $value = $matches[2].Trim()
+            # Strip surrounding quotes so .env can use KEY=value or KEY="value"
+            if ($value.Length -ge 2) {
+                if (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+                    $value = $value.Substring(1, $value.Length - 2)
+                }
+            }
             # Do not override already-set environment variables (shell should win)
             if (-not (Test-Path Env:$key)) {
                 Set-Item -Path Env:$key -Value $value

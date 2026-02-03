@@ -175,12 +175,16 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
     Providers:
       - gemini: Google Gemini embeddings (models/embedding-001)
       - sbert: Sentence-Transformers (local)
+      - openai: OpenAI embeddings (via HTTP API)
       - mock: deterministic mock embeddings
 
     Env:
-      - EMBEDDING_PROVIDER: gemini|sbert|mock (default: gemini)
+      - EMBEDDING_PROVIDER: gemini|sbert|openai|mock (default: gemini)
       - SBERT_MODEL_NAME: model name/path for SBERT provider
       - GEMINI_API_KEY: required for gemini provider
+      - OPENAI_API_KEY: required for openai provider
+      - OPENAI_EMBEDDING_MODEL: OpenAI embedding model (default: text-embedding-3-small)
+      - OPENAI_BASE_URL: base URL for OpenAI-compatible API (default: https://api.openai.com)
       - USE_MOCK_EMBEDDING: if true, forces mock embeddings (provider-agnostic)
     
     Args:
@@ -190,7 +194,14 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
     Raises:
         ValueError: If provider requirements are not satisfied
     """
-    provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
+    provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip()
+    # Be tolerant of .env/shell values like "sbert" or 'sbert'
+    if len(provider) >= 2 and (
+        (provider.startswith('"') and provider.endswith('"'))
+        or (provider.startswith("'") and provider.endswith("'"))
+    ):
+        provider = provider[1:-1]
+    provider = provider.strip().lower()
 
     # Provider selection rules:
     # - If EMBEDDING_PROVIDER=mock => always mock
@@ -229,9 +240,62 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
         _maybe_set_cached_embedding(provider="sbert", task_type=task_type, model_name=model_name, text=text, embedding=emb)
         return emb
 
+    if provider == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "OPENAI_API_KEY environment variable is not set. "
+                "Set OPENAI_API_KEY, or set EMBEDDING_PROVIDER=sbert/mock."
+            )
+
+        try:
+            import httpx
+        except Exception as e:
+            raise ValueError(f"OpenAI embeddings require httpx (missing dep: {type(e).__name__}).") from e
+
+        model_name = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small").strip()
+        base_url = (os.getenv("OPENAI_BASE_URL") or "https://api.openai.com").rstrip("/")
+        url = f"{base_url}/v1/embeddings"
+
+        cached = _maybe_get_cached_embedding(
+            provider="openai",
+            task_type=task_type,
+            model_name=model_name,
+            text=text,
+        )
+        if cached is not None:
+            return cached
+
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        body = {"model": model_name, "input": text}
+        timeout_s = float(os.getenv("LLM_NETWORK_TIMEOUT_SECONDS", "15"))
+        with httpx.Client(timeout=timeout_s, headers=headers) as client:
+            resp = client.post(url, json=body)
+            resp.raise_for_status()
+            data = resp.json()
+
+        emb = None
+        try:
+            emb = ((data.get("data") or [])[0] or {}).get("embedding")
+        except Exception:
+            emb = None
+
+        if not isinstance(emb, list) or len(emb) == 0:
+            raise ValueError("OpenAI embeddings API returned an invalid embedding.")
+
+        emb = [float(x) for x in emb]
+        _maybe_set_cached_embedding(
+            provider="openai",
+            task_type=task_type,
+            model_name=model_name,
+            text=text,
+            embedding=emb,
+        )
+        return emb
+
     if provider != "gemini":
         raise ValueError(
-            f"Unknown EMBEDDING_PROVIDER='{provider}'. Use one of: gemini, sbert, mock."
+            f"Unknown EMBEDDING_PROVIDER='{provider}'. Use one of: gemini, sbert, openai, mock."
         )
 
     if force_mock:
@@ -254,12 +318,11 @@ def generate_embedding(text: str, task_type: str = "retrieval_document"):
     if not api_key:
         raise ValueError(
             "GEMINI_API_KEY environment variable is not set. "
-            "Set GEMINI_API_KEY, or set EMBEDDING_PROVIDER=sbert, or set USE_MOCK_EMBEDDING=true."
+            "Set GEMINI_API_KEY, or set EMBEDDING_PROVIDER=sbert/openai/mock, or set USE_MOCK_EMBEDDING=true."
         )
 
-    # Configure if not already configured
-    if not genai.api_key:
-        genai.configure(api_key=api_key)
+    # Configure Gemini (some versions don't expose genai.api_key attribute)
+    genai.configure(api_key=api_key)
 
     cached = _maybe_get_cached_embedding(
         provider="gemini",
