@@ -380,6 +380,8 @@ def get_issue_from_db(
         parts.append(f"Issue: {issue.issue_key}")
         if issue.summary:
             parts.append(f"Summary: {issue.summary}")
+        if getattr(issue, "os", None):
+            parts.append(f"OS: {getattr(issue, 'os')}")
         if issue.description:
             parts.append(f"Description: {issue.description}")
         if issue.status:
@@ -417,6 +419,7 @@ def get_issue_from_db(
             "url": issue.url,
             "summary": issue.summary,
             "description": issue.description,
+            "os": getattr(issue, "os", None),
             "status": issue.status,
             "priority": issue.priority,
             "assignee": issue.assignee,
@@ -471,6 +474,9 @@ def intake_issue_from_user_input(
 
     domain_s = str(domain or "").strip() or None
     os_s = str(os or "").strip() or None
+    if not os_s:
+        # Default to ChromeOS for SYSCROS intake unless explicitly provided.
+        os_s = "chromeos"
     desc_s = _truncate(description, 200_000)
     logs_s = _truncate(logs, 200_000)
     components_s = [str(c).strip() for c in (components or []) if str(c).strip()] or None
@@ -517,6 +523,7 @@ def intake_issue_from_user_input(
             assignee=None,
             issue_type="UserIntake",
             program_theme=None,
+            os=os_s,
             labels=labels_s,
             components=components_s,
             comments=None,

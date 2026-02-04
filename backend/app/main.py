@@ -118,6 +118,30 @@ async def _ensure_db_schema() -> None:
     except Exception as e:
         print(f"[STARTUP] DB migration skipped/failed: {e}")
 
+    # Additive column migration: jira_issues.os (default to chromeos for existing rows)
+    try:
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            r = conn.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema='public'
+                      AND table_name='jira_issues'
+                      AND column_name='os'
+                    """
+                )
+            ).first()
+            if not r:
+                conn.execute(text("ALTER TABLE public.jira_issues ADD COLUMN os VARCHAR NULL"))
+                # Backfill: treat existing SYSCROS issues as ChromeOS unless already stored elsewhere.
+                conn.execute(text("UPDATE public.jira_issues SET os='chromeos' WHERE os IS NULL"))
+                print("[STARTUP] DB migrated: added jira_issues.os (backfilled chromeos)")
+    except Exception as e:
+        print(f"[STARTUP] DB migration skipped/failed (jira_issues.os): {e}")
+
     # Additive column migration: jira_analysis_runs.idempotency_key
     try:
         from sqlalchemy import text

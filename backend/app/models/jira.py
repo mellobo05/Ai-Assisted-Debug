@@ -21,6 +21,7 @@ class JiraIssue(Base):
     assignee = Column(String, nullable=True)
     issue_type = Column(String, nullable=True)
     program_theme = Column(String, nullable=True)
+    os = Column(String, nullable=True)
     labels = Column(JSON, nullable=True)  # list[str]
     components = Column(JSON, nullable=True)  # list[str]
     comments = Column(JSON, nullable=True)  # list[{"id","created","displayName","body"}]
