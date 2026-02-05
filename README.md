@@ -13,6 +13,17 @@ AI-powered **Auto Debug Assistant** that uses your locally ingested JIRA data (P
 
 ### Quick start (Windows / PowerShell)
 
+#### 0) Create a `.env` (recommended)
+Create `./.env` (repo root). **Do not commit it** (it’s gitignored).
+
+Minimum example:
+
+```env
+DATABASE_URL=postgresql+psycopg2://postgres:<YOUR_PASSWORD>@127.0.0.1:5432/postgres
+EMBEDDING_PROVIDER=mock
+USE_MOCK_EMBEDDING=true
+```
+
 #### 1) Confirm Postgres is running
 This repo assumes Postgres is available at:
 - `postgresql://postgres:<YOUR_PASSWORD>@localhost:5432/postgres`
@@ -55,26 +66,25 @@ Open the Vite URL shown in the terminal.
 
 The UI now uses **one input form** to handle the full pipeline:
 
-- Inputs: **JIRA ID**, **JIRA summary**, **logs**, **domain**, **OS**, and optional notes
+- Inputs: **JIRA ID**, **JIRA summary**, **logs**, **component**, **OS**, and optional notes
 - Backend endpoint: `POST /jira/analyze`
 
 Behavior:
-- If **same JIRA ID + same summary** already exists and a previous analysis run is stored, the backend returns a **cached RCA** immediately.
+- **Idempotent**: if you click Analyze twice with the same input, it reuses the same job / saved run (no duplicate records).
+- If **same JIRA ID + same summary (+ same input fingerprint)** already exists and a previous analysis run is stored, the backend returns a **cached RCA** immediately.
 - Otherwise it **upserts** the issue into `jira_issues` + `jira_embeddings`, computes a **fast report**, and then runs the LLM **asynchronously** (UI polls until analysis completes).
 - Related issues:
   - Preferred: **live JIRA** JQL `text ~` search with iterative query expansion (requires `JIRA_BASE_URL` + credentials)
   - Fallback: local DB embedding similarity
   - If related issues are found, it stores `jira_issues.related_issue_keys` for faster access later.
 
+Similarity filtering:
+- If the user provides **component**, we first narrow candidates using DB component matches, then run embedding similarity only within that subset.
+- If only **domain** is provided, we use a lightweight weakly-supervised classifier (from DB components/labels) + keyword matching as a prefilter.
+
 Legacy endpoints still exist:
 - `POST /jira/intake` (store + embed only)
 - `POST /jira/summarize` (summarize an existing DB issue)
-
-### Using the UI to retrieve similar JIRA issues
-1) Start **backend** + **frontend**
-2) In the UI, use **JIRA Similarity Search**
-3) Paste a query (or an issue key if you want to search by the issue text you provide) and click **Search**
-4) Results show similar issues ranked by similarity score
 
 ### ADAG-style “Fetch and summarize” (prompt mode)
 This reads the issue from **local Postgres** (no live JIRA sync).
@@ -121,7 +131,7 @@ Set via environment variables (PowerShell examples):
 - **Mock (fast, offline):**
 
 ```powershell
-$env:EMBEDDING_PROVIDER="gemini"
+$env:EMBEDDING_PROVIDER="mock"
 $env:USE_MOCK_EMBEDDING="true"
 ```
 
@@ -132,12 +142,27 @@ $env:EMBEDDING_PROVIDER="sbert"
 $env:USE_MOCK_EMBEDDING="false"
 ```
 
+- **OpenAI embeddings:**
+Set `OPENAI_API_KEY` and:
+
+```powershell
+$env:EMBEDDING_PROVIDER="openai"
+```
+
 - **Gemini embeddings:**
 Set `GEMINI_API_KEY` and:
 
 ```powershell
 $env:EMBEDDING_PROVIDER="gemini"
 $env:USE_MOCK_EMBEDDING="false"
+```
+
+Warmup behavior:
+- SBERT warmup runs on startup but will **timeout quickly** so it doesn’t block server boot.
+- You can disable warmup entirely:
+
+```powershell
+$env:EMBEDDINGS_WARMUP="false"
 ```
 
 ### pgAdmin: where to see your data
@@ -150,6 +175,21 @@ Connect with:
 
 Then browse:
 `Servers → <server> → Databases → postgres → Schemas → public → Tables → jira_issues`
+
+### DB schema notes
+- `jira_issues.os` exists and is backfilled to **`chromeos`** for existing rows (and populated on intake going forward).
+- `jira_analysis_runs.idempotency_key` is used to avoid duplicate analysis-run rows for the same input.
+
+### Evaluate classifier over/underfitting (quick)
+This repo includes a simple evaluator for the weakly-supervised domain classifier:
+
+```powershell
+python scripts/ml/eval_issue_domain_classifier.py --max-items 500 --test-frac 0.2
+```
+
+Interpretation (rough):
+- train \(\gg\) test → likely **overfitting**
+- both low → likely **underfitting**
 
 ### Troubleshooting
 - **pgAdmin “failed to resolve host 'postgres'”**: use host `localhost` (not `postgres`).

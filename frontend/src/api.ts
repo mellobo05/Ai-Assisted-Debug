@@ -236,9 +236,7 @@ export async function jiraAnalyze(payload: JiraAnalyzeRequest): Promise<JiraAnal
     },
     30000
   );
-}
-
-export async function getJiraAnalyzeJob(jobId: string): Promise<JiraAnalyzeResponse> {
+}export async function getJiraAnalyzeJob(jobId: string): Promise<JiraAnalyzeResponse> {
   return await fetchJsonWithTimeout<JiraAnalyzeResponse>(
     `${API_BASE}/jira/analyze/job/${encodeURIComponent(jobId)}`,
     {
