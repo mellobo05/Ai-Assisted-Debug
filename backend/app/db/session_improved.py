@@ -1,3 +1,7 @@
+"""
+Improved database session configuration with connection pooling.
+Replace the current session.py with this for better scalability.
+"""
 from __future__ import annotations
 
 import os
@@ -58,6 +62,7 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 # Optional: Read replica support
 # Set DATABASE_URL_READ for read-only queries (searches, status checks)
 READ_DATABASE_URL = os.getenv("DATABASE_URL_READ", "").strip() or DATABASE_URL
@@ -89,4 +94,3 @@ def get_read_session():
 def get_write_session():
     """Get a database session for write operations (always uses primary)"""
     return SessionLocal()
-

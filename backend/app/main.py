@@ -4,11 +4,12 @@ import asyncio
 import os
 from uuid import UUID
 
-from app.db.session import SessionLocal, engine
+from app.db.session import SessionLocal, engine, get_read_session
 from app.models.debug import DebugSession, DebugEmbedding
 from app.services.rag import process_rag_pipeline
 from app.services.search import find_similar_jira
 from app.services.embeddings import generate_embedding
+from app.services.cache import get_cached_analysis, set_cached_analysis
 from app.integrations.jira.client import JiraService, build_embedding_text, extract_issue_fields
 from app.models.jira import JiraIssue, JiraEmbedding
 from app.models.jira_analysis import JiraAnalysisRun
@@ -175,6 +176,53 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint for load balancers and monitoring.
+    Returns 200 if service is healthy, 503 if unhealthy.
+    """
+    health_status = {
+        "status": "healthy",
+        "checks": {}
+    }
+    
+    # Check database connectivity
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        health_status["checks"]["database"] = "ok"
+    except Exception as e:
+        health_status["checks"]["database"] = f"error: {str(e)}"
+        health_status["status"] = "unhealthy"
+    
+    # Check Redis (optional, don't fail if Redis is unavailable)
+    try:
+        from app.services.cache import _cache_service
+        if _cache_service.client:
+            _cache_service.client.ping()
+            health_status["checks"]["redis"] = "ok"
+        else:
+            health_status["checks"]["redis"] = "not_configured"
+    except Exception as e:
+        health_status["checks"]["redis"] = f"error: {str(e)}"
+        # Redis is optional, so don't mark unhealthy
+    
+    # Check embedding provider (optional check)
+    try:
+        provider = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
+        health_status["checks"]["embedding_provider"] = provider
+        if provider == "gemini" and not os.getenv("GEMINI_API_KEY") and os.getenv("USE_MOCK_EMBEDDING", "false").lower() != "true":
+            health_status["checks"]["embedding_provider"] = "warning: GEMINI_API_KEY not set"
+    except Exception:
+        pass
+    
+    status_code = 200 if health_status["status"] == "healthy" else 503
+    return health_status
+
 
 @app.get("/test-background")
 async def test_background(background_tasks: BackgroundTasks):
@@ -647,6 +695,15 @@ async def jira_analyze(request: JiraAnalyzeRequest):
     if mode not in {"async", "sync", "skip"}:
         mode = "async"
 
+    # 0) Check Redis cache first (fastest path)
+    cached_result = get_cached_analysis(key, idempotency_key)
+    if cached_result:
+        return {
+            **cached_result,
+            "cache_hit": True,
+            "analysis_status": "CACHED",
+        }
+
     # 1) If prior analysis exists for this exact input -> return cached (idempotent)
     db = SessionLocal()
     try:
@@ -659,7 +716,7 @@ async def jira_analyze(request: JiraAnalyzeRequest):
                 .first()
             )
             if exact_run and (exact_run.analysis or "").strip():
-                return {
+                result = {
                     "issue_key": key,
                     "summary": summary,
                     "report": str(exact_run.report or ""),
@@ -670,6 +727,9 @@ async def jira_analyze(request: JiraAnalyzeRequest):
                     "cache_hit": True,
                     "saved_run": {"id": str(exact_run.id), "issue_key": key},
                 }
+                # Also cache in Redis for faster future access
+                set_cached_analysis(key, idempotency_key, result, ttl=3600)
+                return result
             last_run = (
                 db.query(JiraAnalysisRun)
                 .filter(JiraAnalysisRun.issue_key == key)
@@ -677,7 +737,7 @@ async def jira_analyze(request: JiraAnalyzeRequest):
                 .first()
             )
             if last_run and (last_run.analysis or "").strip():
-                return {
+                result = {
                     "issue_key": key,
                     "summary": summary,
                     "report": str(last_run.report or ""),
@@ -688,6 +748,9 @@ async def jira_analyze(request: JiraAnalyzeRequest):
                     "cache_hit": True,
                     "saved_run": {"id": str(last_run.id), "issue_key": key} if getattr(last_run, "id", None) else None,
                 }
+                # Also cache in Redis for faster future access
+                set_cached_analysis(key, idempotency_key, result, ttl=3600)
+                return result
     finally:
         db.close()
 
@@ -854,7 +917,7 @@ async def jira_analyze(request: JiraAnalyzeRequest):
             do_analysis=True,
             config=cfg,
         )
-        return {
+        result = {
             "issue_key": key,
             "summary": summary,
             "report": str(out_full.get("report") or report),
@@ -865,6 +928,9 @@ async def jira_analyze(request: JiraAnalyzeRequest):
             "cache_hit": False,
             "saved_run": out_full.get("saved_run"),
         }
+        # Cache the result for future requests
+        set_cached_analysis(key, idempotency_key, result, ttl=3600)
+        return result
 
     # async: spawn analysis job
     job_id = uuid.uuid4().hex
@@ -901,7 +967,7 @@ async def jira_analyze(request: JiraAnalyzeRequest):
                 )
 
             out_full = await loop.run_in_executor(None, _do_work)
-            _JIRA_ANALYZE_JOBS[job_id] = {
+            result_dict = {
                 "status": "COMPLETED",
                 "issue_key": key,
                 "summary": summary,
@@ -912,6 +978,20 @@ async def jira_analyze(request: JiraAnalyzeRequest):
                 "related_issue_keys": related_keys,
                 "idempotency_key": idempotency_key,
             }
+            _JIRA_ANALYZE_JOBS[job_id] = result_dict
+            # Cache the completed result for future requests
+            cache_result = {
+                "issue_key": key,
+                "summary": summary,
+                "report": result_dict["report"],
+                "analysis": result_dict["analysis"],
+                "analysis_status": "COMPLETED",
+                "job_id": None,
+                "related_issue_keys": related_keys,
+                "cache_hit": False,
+                "saved_run": out_full.get("saved_run"),
+            }
+            set_cached_analysis(key, idempotency_key, cache_result, ttl=3600)
         except Exception as e:
             _JIRA_ANALYZE_JOBS[job_id] = {
                 "status": "ERROR",

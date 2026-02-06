@@ -6,6 +6,9 @@ uvicorn==0.29.0
 
 # Database & ORM
 sqlalchemy==2.0.29
+# psycopg2-binary: If installation fails on Windows, try:
+#   pip install psycopg2-binary==2.9.9 --only-binary :all:
+#   Or install Visual C++ Build Tools first
 psycopg2-binary==2.9.9
 alembic==1.13.1
 
@@ -30,6 +33,8 @@ PyYAML==6.0.1
 sentence-transformers==2.6.1
 # Allow a small range so we don't force downloads if a compatible version is already installed.
 cachetools>=5.3.3,<6.0
+# Redis for caching and future job queue (optional but recommended for scaling)
+redis==5.0.1
 
 # LangChain / LangGraph (agents orchestration)
 # This repo is compatible with LangChain 0.3.x (Pydantic v2).
