@@ -7,14 +7,17 @@ uvicorn==0.29.0
 # Database & ORM
 sqlalchemy==2.0.29
 # psycopg2-binary: If installation fails on Windows, try:
-#   pip install psycopg2-binary==2.9.9 --only-binary :all:
+#   pip install --user psycopg2-binary --only-binary :all:
 #   Or install Visual C++ Build Tools first
-psycopg2-binary==2.9.9
+# Note: 2.9.9 not available, using 2.9.11 (latest available)
+psycopg2-binary>=2.9.11
 alembic==1.13.1
 
 # Data validation
-pydantic==2.6.4
-pydantic-settings==2.2.1
+# Note: pydantic 2.6.4 requires Rust to build pydantic-core from source
+# Using flexible version to allow pip to find pre-built wheels
+pydantic>=2.6.0,<3.0.0
+pydantic-settings>=2.2.0,<3.0.0
 
 # AI / LLM
 google-generativeai==0.3.2
