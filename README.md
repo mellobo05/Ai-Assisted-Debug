@@ -1,8 +1,9 @@
-### AI Assisted Debug
+# AI Assisted Debug
 
 AI-powered **Auto Debug Assistant** that uses your locally ingested JIRA data (Postgres) plus embeddings for **similar issue retrieval** and **root-cause oriented summaries**.
 
-### Architecture (high level)
+## Architecture (high level)
+
 - **Backend**: Python **FastAPI** (`backend/app/main.py`)
 - **Database**: **Postgres** (tables like `jira_issues`, `jira_embeddings`)
 - **Embeddings**: `gemini` / `sbert` / `mock` (`backend/app/services/embeddings.py`)
@@ -11,10 +12,30 @@ AI-powered **Auto Debug Assistant** that uses your locally ingested JIRA data (P
   - YAML workflows: `scripts/agent/workflows/*.yaml` run by `scripts/agent/run_workflow.py`
   - ADAG-style prompt runner: `agents/adag.py`
 
-### Quick start (Windows / PowerShell)
+**Phase 1 scaling (optional):** Connection pooling, Redis caching for analysis results, and a health check endpoint. See [PHASE1_QUICK_START.md](PHASE1_QUICK_START.md) and [SCALING_STRATEGY.md](SCALING_STRATEGY.md).
 
-#### 0) Create a `.env` (recommended)
-Create `./.env` (repo root). **Do not commit it** (it’s gitignored).
+---
+
+## Quick start (Windows / PowerShell)
+
+### 0) Install dependencies
+
+```powershell
+# Recommended: use a virtual environment
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Install requirements
+pip install -r requirement.txt
+```
+
+**Installation issues?** See [WINDOWS_INSTALL_FIX.md](WINDOWS_INSTALL_FIX.md) (psycopg2-binary) and [PYDANTIC_RUST_FIX.md](PYDANTIC_RUST_FIX.md) (pydantic/Rust). Quick fixes:
+- **psycopg2-binary:** `pip install --user psycopg2-binary --only-binary :all:` (then `pip install -r requirement.txt` in venv without `--user`)
+- **pydantic:** `pip install --only-binary :all: pydantic pydantic-settings`
+
+### 1) Create a `.env` (recommended)
+
+Create `./.env` (repo root). **Do not commit it** (it’s gitignored). Copy from `.env.example` or use:
 
 Minimum example:
 
@@ -24,36 +45,43 @@ EMBEDDING_PROVIDER=mock
 USE_MOCK_EMBEDDING=true
 ```
 
-#### 1) Confirm Postgres is running
+Optional (Phase 1): Redis for caching — set `REDIS_HOST=localhost`, `REDIS_PORT=6379`. App works without Redis.
+
+### 2) Confirm Postgres is running
 This repo assumes Postgres is available at:
 - `postgresql://postgres:<YOUR_PASSWORD>@localhost:5432/postgres`
 
 Configure credentials via environment variables / `.env` (recommended), or update your local `DATABASE_URL`.
 
-If you have a local Postgres install, ensure it’s started and listening on **5432**.
+If you have a local Postgres install, ensure it’s started and listening on **5432**. Or use Docker: `.\start_postgres_docker.ps1`.
 
-#### 2) Initialize DB tables
+### 3) Initialize DB tables
+
 From repo root:
 
 ```powershell
 python -c "import sys; sys.path.insert(0, 'backend'); from app.db.init_db import init_db; init_db()"
 ```
 
-#### 3) Ingest JIRA data (offline / from cleaned CSV)
+### 4) Ingest JIRA data (offline / from cleaned CSV)
+
 Use your existing CSV ingestion scripts (recommended if your network blocks JIRA):
 
 ```powershell
 python scripts/jira/ingest_cleaned_csv.py --csv scripts/tests/fixtures/jira_cleaned_sample.csv
 ```
 
-#### 4) Start backend
+### 5) Start backend
+
 ```powershell
 .\run_server.ps1 -NoReload
 ```
 
-Backend will run on the configured port (default usually **8000** unless you changed it).
+Backend runs on the configured port (default **8000**).
 
-#### 5) Start frontend
+**Verify:** Open [http://localhost:8000/health](http://localhost:8000/health) — expect `"status": "healthy"` and `"database": "ok"`. See [PHASE1_CONFIRM_CHECKLIST.md](PHASE1_CONFIRM_CHECKLIST.md) to confirm Phase 1.
+
+### 6) Start frontend
 ```powershell
 cd frontend
 npm install
@@ -62,7 +90,16 @@ npm run dev
 
 Open the Vite URL shown in the terminal.
 
-### UI: one-step “JIRA Analyze” pipeline
+---
+
+## API and health check
+
+- **OpenAPI docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Health check (Phase 1):** `GET http://localhost:8000/health` — returns `status`, `database`, `redis`, `embedding_provider`. Used for load balancers and monitoring.
+
+---
+
+## UI: one-step “JIRA Analyze” pipeline
 
 The UI now uses **one input form** to handle the full pipeline:
 
@@ -71,7 +108,7 @@ The UI now uses **one input form** to handle the full pipeline:
 
 Behavior:
 - **Idempotent**: if you click Analyze twice with the same input, it reuses the same job / saved run (no duplicate records).
-- If **same JIRA ID + same summary (+ same input fingerprint)** already exists and a previous analysis run is stored, the backend returns a **cached RCA** immediately.
+- If **same JIRA ID + same summary (+ same input fingerprint)** already exists and a previous analysis run is stored, the backend returns a **cached RCA** immediately (Phase 1: Redis cache is checked first when configured).
 - Otherwise it **upserts** the issue into `jira_issues` + `jira_embeddings`, computes a **fast report**, and then runs the LLM **asynchronously** (UI polls until analysis completes).
 - Related issues:
   - Preferred: **live JIRA** JQL `text ~` search with iterative query expansion (requires `JIRA_BASE_URL` + credentials)
@@ -200,4 +237,19 @@ python scripts/agent/run_workflow.py --workflow scripts/agent/workflows/jira_ree
 ```
 
 - **Embedding debug noise**: set `EMBEDDINGS_DEBUG=true` only when needed.
+- **pip install fails (Windows):** see [WINDOWS_INSTALL_FIX.md](WINDOWS_INSTALL_FIX.md) (psycopg2-binary) and [PYDANTIC_RUST_FIX.md](PYDANTIC_RUST_FIX.md) (pydantic/Rust). General tips: [INSTALL_TROUBLESHOOTING.md](INSTALL_TROUBLESHOOTING.md).
+
+---
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [PHASE1_QUICK_START.md](PHASE1_QUICK_START.md) | Phase 1 scaling quick setup (Redis, pooling, health) |
+| [PHASE1_CONFIRM_CHECKLIST.md](PHASE1_CONFIRM_CHECKLIST.md) | How to confirm Phase 1 is working |
+| [PHASE1_IMPLEMENTATION.md](PHASE1_IMPLEMENTATION.md) | Phase 1 implementation details |
+| [SCALING_STRATEGY.md](SCALING_STRATEGY.md) | Full scaling strategy (Phases 1–5) |
+| [WINDOWS_INSTALL_FIX.md](WINDOWS_INSTALL_FIX.md) | Fix psycopg2-binary install on Windows |
+| [PYDANTIC_RUST_FIX.md](PYDANTIC_RUST_FIX.md) | Fix pydantic/pydantic-core (Rust) install |
+| [INSTALL_TROUBLESHOOTING.md](INSTALL_TROUBLESHOOTING.md) | General installation troubleshooting |
 
