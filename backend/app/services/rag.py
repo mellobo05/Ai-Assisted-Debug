@@ -23,7 +23,7 @@ def process_rag_pipeline(session_id: str, use_mock_embedding: str = None, gemini
             print(f"[RAG] Session {session_id} not found")
             return
 
-        #1.create embedding text
+        #1.create embedding text for RAG
         embedding_text = f"""
         Issue: {session.issue_summary}
         Domain: {session.domain}
