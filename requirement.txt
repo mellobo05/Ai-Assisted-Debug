@@ -39,6 +39,9 @@ cachetools>=5.3.3,<6.0
 # Redis for caching and future job queue (optional but recommended for scaling)
 redis==5.0.1
 
+# Vector Database (Pinecone for RAG)
+pinecone-client==5.0.1
+
 # LangChain / LangGraph (agents orchestration)
 # This repo is compatible with LangChain 0.3.x (Pydantic v2).
 langchain-core>=0.3,<0.4

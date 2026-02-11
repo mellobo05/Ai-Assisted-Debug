@@ -6,13 +6,16 @@ AI-powered **Auto Debug Assistant** that uses your locally ingested JIRA data (P
 
 - **Backend**: Python **FastAPI** (`backend/app/main.py`)
 - **Database**: **Postgres** (tables like `jira_issues`, `jira_embeddings`)
-- **Embeddings**: `gemini` / `sbert` / `mock` (`backend/app/services/embeddings.py`)
+- **Embeddings**: `gemini` / `sbert` / `openai` / `mock` (`backend/app/services/embeddings.py`)
+- **Vector Database**: **Pinecone** (optional, for fast similarity search) - see [PINECONE_SETUP.md](PINECONE_SETUP.md)
 - **Frontend**: **React + TypeScript + Vite** (`frontend/`)
 - **Agents**:
   - YAML workflows: `scripts/agent/workflows/*.yaml` run by `scripts/agent/run_workflow.py`
   - ADAG-style prompt runner: `agents/adag.py`
 
 **Phase 1 scaling (optional):** Connection pooling, Redis caching for analysis results, and a health check endpoint. See [PHASE1_QUICK_START.md](PHASE1_QUICK_START.md) and [SCALING_STRATEGY.md](SCALING_STRATEGY.md).
+
+**Pinecone Integration (optional):** Use Pinecone for production-grade vector search. Benefits: fast similarity search at scale, managed infrastructure, metadata filtering. See [PINECONE_SETUP.md](PINECONE_SETUP.md) for setup instructions.
 
 ---
 
