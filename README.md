@@ -95,7 +95,7 @@ Open the Vite URL shown in the terminal.
 
 ---
 
-## API and health check
+## API and health check of endpoints
 
 - **OpenAPI docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Health check (Phase 1):** `GET http://localhost:8000/health` — returns `status`, `database`, `redis`, `embedding_provider`. Used for load balancers and monitoring.
